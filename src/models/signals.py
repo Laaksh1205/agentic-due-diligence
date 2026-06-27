@@ -71,6 +71,13 @@ class RiskSignal(BaseModel):
     is_corroborated: bool = False
     corroborating_signals: list[uuid.UUID] = []
 
+    # Source credibility (src/analysis/source_credibility.py). Defaults keep older
+    # stored reports valid; set during extraction / risk analysis.
+    source_credibility: float = Field(default=1.0, ge=0.0, le=1.0)  # tier weight
+    credibility_tier: str = ""                                       # PRIMARY/ESTABLISHED/GENERAL/LOW
+    independent_source_count: int = Field(default=1, ge=1)           # distinct corroborating domains
+    is_unverified: bool = False                                      # severity-capped: single low-trust source
+
     requires_human_review: bool = False
     human_verdict: Optional[HumanVerdict] = None
     is_contradictory: bool = False

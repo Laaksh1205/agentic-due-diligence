@@ -27,6 +27,7 @@ from typing import Callable, Optional, Sequence
 
 import numpy as np
 
+from src.analysis.source_credibility import registrable_domain
 from src.models.signals import RiskSignal
 
 logger = logging.getLogger(__name__)
@@ -115,14 +116,21 @@ def deduplicate(
 
     result: list[RiskSignal] = []
     for idxs in clusters.values():
-        # Highest confidence is primary; ties resolved by original order (stable).
-        primary_idx = max(idxs, key=lambda i: (signals[i].confidence_score, -i))
+        # Most authoritative source is primary (credibility, then confidence);
+        # ties resolved by original order (stable).
+        primary_idx = max(
+            idxs, key=lambda i: (signals[i].source_credibility, signals[i].confidence_score, -i)
+        )
         others = [signals[i] for i in idxs if i != primary_idx]
         primary = signals[primary_idx]
         if others:
+            # Independence = distinct registrable domains across the cluster, so N
+            # mirrors of one wire story count as a single source (not N).
+            domains = {registrable_domain(signals[i].source_url) for i in idxs}
             primary = primary.model_copy(update={
                 "is_corroborated": True,
                 "corroborating_signals": [o.id for o in others],
+                "independent_source_count": len(domains),
             })
         result.append((min(idxs), primary))
 

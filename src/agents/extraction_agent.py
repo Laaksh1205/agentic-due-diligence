@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
+from src.analysis.source_credibility import classify_credibility
 from src.analysis.temporal import calculate_temporal_weight
 from src.config import settings
 from src.llm.base import LLMProvider
@@ -91,6 +92,7 @@ def _to_risk_signal(
     es: ExtractedSignal, doc: RawDocument, entity_name: str, confidence: float
 ) -> RiskSignal:
     parsed_date = _parse_data_date(es.data_date)
+    tier, weight = classify_credibility(doc.source_url, doc.source_type)
     return RiskSignal(
         text=es.text,
         source_url=doc.source_url,
@@ -99,6 +101,8 @@ def _to_risk_signal(
         data_date=parsed_date,
         confidence_score=max(0.0, min(1.0, confidence)),
         temporal_weight=calculate_temporal_weight(parsed_date),
+        source_credibility=weight,
+        credibility_tier=tier.value,
         risk_category=es.risk_category,
         risk_subcategory=es.risk_subcategory,
         severity=es.severity,

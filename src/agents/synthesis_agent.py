@@ -117,10 +117,15 @@ def _format_signals(
     lines: list[str] = []
     for sig in signals:
         num = signal_to_num[sig.id]
+        cred = sig.credibility_tier or "GENERAL"
+        flag = (
+            " | UNVERIFIED (single low-credibility source — caveat this claim, keep it out of confident summary statements)"
+            if sig.is_unverified else ""
+        )
         lines.append(
             f"[Signal-{num}] {sig.severity.value} | {sig.risk_category.value} | "
             f"{sig.signal_polarity.value} | conf={sig.confidence_score:.2f} | "
-            f"tw={sig.temporal_weight:.2f}\n"
+            f"tw={sig.temporal_weight:.2f} | cred={cred} | srcs={sig.independent_source_count}{flag}\n"
             f"  Statement: {sig.text}\n"
             f"  Evidence: \"{sig.source_snippet[:180]}\"\n"
             f"  Source: {sig.source_url}"

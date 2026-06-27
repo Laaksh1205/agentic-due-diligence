@@ -19,7 +19,7 @@ from src.models.signals import (
 )
 
 
-def _sig(text, *, cat=RiskCategory.LEGAL, conf=0.9, url="https://x/a"):
+def _sig(text, *, cat=RiskCategory.LEGAL, conf=0.9, url="https://x/a", cred=1.0):
     return RiskSignal(
         text=text,
         source_url=url,
@@ -30,6 +30,7 @@ def _sig(text, *, cat=RiskCategory.LEGAL, conf=0.9, url="https://x/a"):
         severity=Severity.HIGH,
         signal_polarity=SignalPolarity.NEGATIVE,
         entity_name="Acme Corp",
+        source_credibility=cred,
     )
 
 
@@ -76,6 +77,34 @@ def test_clear_duplicates_merge_into_one_primary():
     assert primary.confidence_score == 0.95            # highest-confidence kept
     assert primary.is_corroborated is True
     assert len(primary.corroborating_signals) == 4     # other 4 linked
+
+
+def test_independent_source_count_counts_distinct_domains():
+    # 3 mirrors of one story across 2 distinct domains → independent count = 2,
+    # not 3 (collapses same-domain reposts).
+    t = "SEC opened an investigation into Acme"
+    sigs = [
+        _sig(t, url="https://reuters.com/a"),
+        _sig(t, url="https://reuters.com/b"),   # same registrable domain
+        _sig(t, url="https://bloomberg.com/c"),
+    ]
+    out = deduplicate(sigs, embedder=_DictEmbedder({t: _onehot(0)}))
+    assert len(out) == 1
+    assert out[0].is_corroborated is True
+    assert out[0].independent_source_count == 2
+
+
+def test_primary_picked_by_credibility_then_confidence():
+    # A lower-confidence but higher-credibility source represents the cluster.
+    t = "Acme fraud investigation"
+    sigs = [
+        _sig(t, conf=0.95, url="https://blog.example/1", cred=0.35),  # high conf, low trust
+        _sig(t, conf=0.50, url="https://sec.gov/2", cred=1.0),        # low conf, high trust
+    ]
+    out = deduplicate(sigs, embedder=_DictEmbedder({t: _onehot(0)}))
+    assert len(out) == 1
+    assert out[0].source_url == "https://sec.gov/2"
+    assert out[0].source_credibility == 1.0
 
 
 def test_cross_category_not_merged_even_if_similar():

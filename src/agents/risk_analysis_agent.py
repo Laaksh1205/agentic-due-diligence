@@ -26,6 +26,10 @@ from typing import Optional
 
 from src.analysis.deduplication import Embedder, deduplicate, get_default_embedder
 from src.analysis.knowledge_base import retrieve_severity_context
+from src.analysis.source_credibility import (
+    apply_credibility_adjustment,
+    apply_credibility_gate,
+)
 from src.config import settings
 from src.llm.base import LLMProvider
 from src.llm.gemini import GeminiProvider
@@ -43,7 +47,6 @@ logger = logging.getLogger(__name__)
 
 _MAX_CONCURRENCY = 5
 HUMAN_REVIEW_CONFIDENCE_FLOOR = 0.6
-CORROBORATION_BOOST = 0.1
 CRITICAL_INFLATION_THRESHOLD = 0.10  # >10% CRITICAL → warn
 MAX_CONTRADICTION_PAIRS = 5          # cap LLM calls spent on contradiction checks
 _CONTRADICTION_SIM_THRESHOLD = 0.5   # candidate-pair topical-similarity floor
@@ -60,23 +63,18 @@ _SEVERITY_WEIGHT = {
 
 # ── Pure helpers (no LLM) ─────────────────────────────────────────────────────
 
-def apply_corroboration_boost(signal: RiskSignal) -> RiskSignal:
-    """+0.1 confidence (capped at 1.0) for corroborated signals (Task 2.7.2)."""
-    if not signal.is_corroborated:
-        return signal
-    return signal.model_copy(update={
-        "confidence_score": min(1.0, signal.confidence_score + CORROBORATION_BOOST),
-    })
-
-
 def needs_human_review(signal: RiskSignal) -> bool:
     """CRITICAL severity or low confidence → human review (Task 2.7.1 step 6)."""
     return signal.severity is Severity.CRITICAL or signal.confidence_score < HUMAN_REVIEW_CONFIDENCE_FLOOR
 
 
 def effective_severity_score(signal: RiskSignal) -> float:
-    """Severity weight × temporal_weight — the decayed severity used downstream."""
-    return _SEVERITY_WEIGHT.get(signal.severity, 0.2) * (signal.temporal_weight or 1.0)
+    """Severity weight × temporal_weight × source_credibility (decayed, trust-weighted)."""
+    return (
+        _SEVERITY_WEIGHT.get(signal.severity, 0.2)
+        * (signal.temporal_weight or 1.0)
+        * (signal.source_credibility or 1.0)
+    )
 
 
 def critical_inflation(signals: list[RiskSignal]) -> bool:
@@ -157,8 +155,8 @@ async def risk_analysis_agent_node(
         logger.info("[risk_analysis] no signals to analyse")
         return {"scored_signals": []}
 
-    # 1–2. Dedup + corroboration boost (no LLM).
-    deduped = [apply_corroboration_boost(s) for s in deduplicate(raw, embedder=embedder)]
+    # 1–2. Dedup + credibility-aware confidence adjustment (no LLM).
+    deduped = [apply_credibility_adjustment(s) for s in deduplicate(raw, embedder=embedder)]
 
     prior_calls = state.get("llm_call_count", 0)
     provider = provider or GeminiProvider()
@@ -191,6 +189,15 @@ async def risk_analysis_agent_node(
     errors.extend(e for _, e in scored_pairs if e)
     # Unscored signals still get a review flag based on their existing severity.
     scored.extend(s.model_copy(update={"requires_human_review": needs_human_review(s)}) for s in unscored)
+
+    # 4b. Credibility gate (cap + flag): a HIGH/CRITICAL finding resting on a single
+    # low-trust, uncorroborated source is capped to MEDIUM, marked is_unverified, and
+    # routed to human review — never dropped (recall preserved).
+    gated = [apply_credibility_gate(s) for s in scored]
+    capped = sum(1 for before, after in zip(scored, gated) if before.severity is not after.severity)
+    if capped:
+        logger.info("[risk_analysis] credibility gate capped %d low-trust signal(s) to MEDIUM", capped)
+    scored = gated
 
     # 5. Severity-inflation check (Task 2.7.3).
     if critical_inflation(scored):
@@ -243,7 +250,8 @@ async def risk_analysis_agent_node(
 
 
 __all__ = [
-    "apply_corroboration_boost",
+    "apply_credibility_adjustment",
+    "apply_credibility_gate",
     "needs_human_review",
     "effective_severity_score",
     "critical_inflation",

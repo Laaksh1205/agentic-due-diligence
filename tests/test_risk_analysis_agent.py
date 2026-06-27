@@ -11,7 +11,7 @@ import pytest
 
 import src.agents.risk_analysis_agent as ra
 from src.agents.risk_analysis_agent import (
-    apply_corroboration_boost,
+    apply_credibility_adjustment,
     candidate_contradiction_pairs,
     critical_inflation,
     effective_severity_score,
@@ -31,12 +31,15 @@ from src.models.signals import SourceType
 
 def _sig(text, *, cat=RiskCategory.FINANCIAL, sev=Severity.MEDIUM, conf=0.9,
          pol=SignalPolarity.NEGATIVE, corro=False, url="https://x/a", entity="Acme Corp",
-         tw=1.0):
+         tw=1.0, tier="ESTABLISHED", cred=1.0, indep=1):
+    # Default tier is ESTABLISHED (not severity-cappable) so severity assertions
+    # are about the scorer, not the credibility gate; low-trust cases pass tier=...
     return RiskSignal(
         text=text, source_url=url, source_type=SourceType.NEWS_ARTICLE,
         source_snippet="snippet anchoring the signal text for the record here please",
         confidence_score=conf, risk_category=cat, severity=sev, signal_polarity=pol,
         entity_name=entity, is_corroborated=corro, temporal_weight=tw,
+        source_credibility=cred, credibility_tier=tier, independent_source_count=indep,
     )
 
 
@@ -84,10 +87,15 @@ def _state(signals, *, llm_call_count=0, total_cost=0.0):
 
 # ── Pure helpers ──────────────────────────────────────────────────────────────
 
-def test_corroboration_boost_caps_at_one():
-    assert apply_corroboration_boost(_sig("x", conf=0.95, corro=True)).confidence_score == 1.0
-    assert apply_corroboration_boost(_sig("x", conf=0.5, corro=True)).confidence_score == pytest.approx(0.6)
-    assert apply_corroboration_boost(_sig("x", conf=0.5, corro=False)).confidence_score == 0.5
+def test_credibility_adjustment_haircuts_low_trust():
+    # PRIMARY single source → confidence unchanged.
+    assert apply_credibility_adjustment(
+        _sig("x", conf=0.9, tier="PRIMARY", cred=1.0, indep=1)
+    ).confidence_score == pytest.approx(0.9)
+    # LOW single source → haircut (mult 0.4 + 0.6*0.35 = 0.61).
+    assert apply_credibility_adjustment(
+        _sig("x", conf=1.0, tier="LOW", cred=0.35, indep=1)
+    ).confidence_score == pytest.approx(0.61)
 
 
 def test_needs_human_review_rules():
@@ -144,6 +152,28 @@ async def test_node_flags_critical_for_human_review():
     out = await risk_analysis_agent_node(_state([_sig("active fraud probe")]),
                                          provider=prov, embedder=_BagEmbedder())
     assert out["scored_signals"][0].requires_human_review is True
+
+
+async def test_node_credibility_gate_caps_low_trust_critical():
+    # The headline guarantee: a CRITICAL scored on a single LOW-tier, uncorroborated
+    # source is capped to MEDIUM, marked unverified, and routed to human review —
+    # but never dropped.
+    prov = _FakeProvider(severity=Severity.CRITICAL)
+    fake = _sig("fabricated fraud claim", tier="LOW", cred=0.35, indep=1)
+    out = await risk_analysis_agent_node(_state([fake]), provider=prov, embedder=_BagEmbedder())
+    sig = out["scored_signals"][0]
+    assert sig.severity is Severity.MEDIUM
+    assert sig.is_unverified is True
+    assert sig.requires_human_review is True
+
+
+async def test_node_keeps_primary_critical():
+    # A single PRIMARY (e.g. SEC/court) source can still drive a CRITICAL finding.
+    prov = _FakeProvider(severity=Severity.CRITICAL)
+    sig = _sig("court orders injunction", tier="PRIMARY", cred=1.0, indep=1)
+    out = await risk_analysis_agent_node(_state([sig]), provider=prov, embedder=_BagEmbedder())
+    assert out["scored_signals"][0].severity is Severity.CRITICAL
+    assert out["scored_signals"][0].is_unverified is False
 
 
 async def test_node_deduplicates_before_scoring():
