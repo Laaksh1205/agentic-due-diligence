@@ -15,6 +15,7 @@ its own auth, rate-limiting, and exponential backoff.
 | Registry Lookup | `src.mcp_servers.registry_lookup.server` | `X-API-Key` header | 5,000/mo · 1,000/day · 10/s |
 | Companies House | `src.mcp_servers.companies_house.server` | HTTP Basic (key as username) | none (backoff on 429/503) |
 | SEC EDGAR | `src.mcp_servers.sec_edgar.server` | none (User-Agent required) | 10 req/s |
+| News | `src.mcp_servers.news.server` | `X-Api-Key` header | 100/day (free tier) |
 
 ---
 
@@ -86,16 +87,46 @@ pytest tests/test_mcp_sec_edgar.py -v
 
 ---
 
+## News MCP — the extensibility proof (Phase 5.6)
+
+The fourth custom server. It exists to demonstrate the thesis directly: a new
+data source — recent news from [NewsAPI.org](https://newsapi.org) (150,000+
+sources) — was added by writing this server and adding **one line** to the
+research agent's concurrent gather. No other agent code changed.
+
+Surfaces lawsuits, investigations, fines, data breaches, leadership changes, and
+reputational events that registry data and filings miss. Auth via the
+`X-Api-Key` header; free tier is 100 requests/day and serves articles from the
+last month only.
+
+> **Optional source:** if `NEWS_API_KEY` is unset the tool returns
+> `{"error": "missing_key"}` and the research agent skips it cleanly — every
+> other source still runs.
+
+| Tool | Signature | Returns |
+|---|---|---|
+| `search_news` | `(query, from_date="", to_date="", language="en")` | Recent articles (title, source, author, description, url, published_at, content), newest-first. |
+
+**Test standalone:**
+
+```bash
+python -m src.mcp_servers.news.server
+pytest tests/test_mcp_news.py -v
+```
+
+---
+
 ## How the research agent uses them
 
 The research agent (`src/agents/research_agent.py`) fans out to all applicable
 servers via `asyncio.gather(..., return_exceptions=True)`:
 
-- Every company → Registry Lookup + Tavily web search.
+- Every company → Registry Lookup + Tavily web search + News (when `NEWS_API_KEY` set).
 - UK company (`jurisdiction` starts `gb`) → + Companies House officers/filings.
 - Public company (`is_public`) → + SEC EDGAR filings.
 
 A failing source is appended to `sources_failed` and never crashes the run —
 this is the "graceful degradation" property validated in the evaluation
-(`5.1.6`). Adding a new source (e.g. the News API in Phase 5.6) is purely a
-matter of writing the server and registering it in `mcp_config.json`.
+(`5.1.6`). The News API server (Phase 5.6) is the worked example of this thesis:
+adding a new source was purely a matter of writing the server, registering it in
+`mcp_config.json`, and adding one entry to the research agent's source map.

@@ -1,0 +1,98 @@
+{
+  "generated_at": "2026-06-27T10:28:43.925571+00:00",
+  "source": "cached",
+  "per_company": [
+    {
+      "company": "boeing",
+      "signals_found": 52,
+      "positive_signals": 5,
+      "signals_only": false,
+      "match_scale": "embed",
+      "recall": 0.6666666666666666,
+      "matched_truth": 8,
+      "total_truth": 12,
+      "missed_truth_ids": [
+        6,
+        7,
+        9,
+        12
+      ],
+      "precision_proxy": 0.5192307692307693,
+      "matched_pred": 27,
+      "total_pred": 52,
+      "severity_pairs": 8,
+      "severity_exact": 0.25,
+      "severity_within_one": 0.75,
+      "data_sufficiency": {
+        "exact": false,
+        "within_one": true,
+        "pred": "ADEQUATE",
+        "truth": "RICH"
+      },
+      "verification": {
+        "signals_extracted": 57,
+        "signals_rejected": 0,
+        "rejection_rate": 0.0,
+        "verification_pass_rate": 1.0
+      },
+      "dedup": {
+        "total_signals": 52,
+        "corroborated": 1,
+        "corroborated_rate": 0.019230769230769232,
+        "contradictory": 0
+      },
+      "faithfulness_citation": {
+        "citations": 45,
+        "grounded": 1.0,
+        "orphans": 0
+      },
+      "guardrails": {
+        "llm_call_count": 46,
+        "max_llm_calls": 50,
+        "estimated_cost_usd": 0.0134,
+        "max_cost_usd": 1.0,
+        "compliant": true
+      },
+      "graceful_degradation": false,
+      "cost_usd": 0.0134,
+      "latency_s": 0.0
+    }
+  ],
+  "aggregate": {
+    "companies_evaluated": 1,
+    "mean_recall": 0.6666666666666666,
+    "mean_severity_exact": 0.25,
+    "mean_rejection_rate": 0.0,
+    "data_sufficiency_exact_rate": 0.0,
+    "avg_cost_usd": 0.0134,
+    "latency": {
+      "p50": null,
+      "p95": null,
+      "n": 0
+    },
+    "guardrail_compliance_rate": 1.0,
+    "graceful_degradation_observed": false
+  },
+  "consistency": {
+    "runs": 3,
+    "mean_jaccard": 0.23802681992337163,
+    "min_jaccard": 0.0,
+    "pairwise": [
+      0.0,
+      0.172,
+      0.542
+    ],
+    "caveat": "cached runs are mixed code versions; use --consistency 3 --live"
+  },
+  "ragas": {
+    "faithfulness": 1.0,
+    "context_precision": null,
+    "answer_relevancy": null,
+    "tool_call_accuracy": null,
+    "source": "citation-grounding (heuristic floor)"
+  },
+  "guardrail_limits": {
+    "max_llm_calls": 50,
+    "max_cost_usd": 1.0
+  }
+}

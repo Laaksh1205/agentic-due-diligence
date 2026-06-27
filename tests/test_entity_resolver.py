@@ -167,7 +167,8 @@ class TestEntityResolverUnit:
         monkeypatch.setattr("src.config.settings.database_path", str(tmp_path / "test.db"))
         monkeypatch.setattr("src.config.settings.use_cache", False)
 
-        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(MOCK_AMBIGUOUS_RL, False)):
+        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(MOCK_AMBIGUOUS_RL, False)), \
+             patch("src.resolution.entity_resolver._edgar_lookup", new_callable=AsyncMock, return_value={}):
             entity = await resolver.resolve("Mercury Corp")
 
         # The top match is selected; the pipeline proceeds instead of erroring.
@@ -219,7 +220,8 @@ class TestEntityResolverUnit:
         monkeypatch.setattr("src.config.settings.use_cache", False)
 
         many = [{"id": str(i), "legal_name": f"Acme #{i}", "jurisdiction_code": "us-de"} for i in range(10)]
-        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(many, False)):
+        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(many, False)), \
+             patch("src.resolution.entity_resolver._edgar_lookup", new_callable=AsyncMock, return_value={}):
             entity = await resolver.resolve("Acme")
 
         assert entity.canonical_name == "Acme #0"

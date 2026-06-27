@@ -271,8 +271,12 @@ async def _edgar_lookup(client: httpx.AsyncClient, company_name: str) -> dict:
         tickers_data = r.json()  # {str: {cik_str, ticker, title}}
 
         def _norm(s: str) -> str:
-            # Strip punctuation so "Tesla, Inc." → "TESLA INC" for clean fuzzy match
-            return re.sub(r"[^\w\s]", "", s).upper()
+            # Replace punctuation with spaces (not delete) so hyphenated names like
+            # "Colgate-Palmolive" tokenize as two words instead of merging into
+            # "COLGATEPALMOLIVE" (which would fail token_sort_ratio). Then collapse
+            # whitespace. "Tesla, Inc." → "TESLA INC"; "Colgate-Palmolive Co" →
+            # "COLGATE PALMOLIVE CO".
+            return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", " ", s)).strip().upper()
 
         # Build {cik_str → normalized_title} for fuzzy matching
         choices: dict[str, str] = {
@@ -290,7 +294,23 @@ async def _edgar_lookup(client: httpx.AsyncClient, company_name: str) -> dict:
             logger.info("EDGAR: no fuzzy match for '%s' (score < 70)", company_name)
             return {}
 
-        _matched_title, _score, matched_cik = match
+        _matched_title, _score, matched_cik = match  # extractOne over a dict → (value, score, key)
+
+        # Guard against near-miss fuzzy collisions where a private company is
+        # mis-bound to a similarly-named public filer (e.g. "Stripe, Inc."→
+        # "Stride, Inc.", "Mercury Corp"→"Marcus Corp"). token_sort_ratio rates
+        # these ≥70 because only one character differs, so a score cutoff can't
+        # separate them from real hits (Boeing→"Boeing Co" scores the same). Require
+        # the first significant token of the query and the matched filer to agree.
+        q_tokens = _norm(company_name).split()
+        m_tokens = (_matched_title or "").split()  # choices values are already normalized
+        if q_tokens and m_tokens and q_tokens[0] != m_tokens[0]:
+            logger.info(
+                "EDGAR: rejecting near-miss '%s' → '%s' (first-token mismatch)",
+                company_name, _matched_title,
+            )
+            return {}
+
         cik_padded = str(matched_cik).zfill(10)
         logger.info("EDGAR fuzzy match: '%s' → CIK %s (score=%d)", company_name, cik_padded, _score)
 
@@ -466,8 +486,16 @@ class EntityResolver:
         if entity.jurisdiction and "gb" in entity.jurisdiction:
             entity = await self._enrich_companies_house(client, entity, raw_input)
 
-        # US / unknown: try SEC EDGAR for public company enrichment
-        if not entity.sec_cik and (entity.is_public or not entity.registry_lookup_id):
+        # US / unknown jurisdiction: confirm public status + CIK via SEC EDGAR.
+        # Attempt this whenever we lack a CIK and the jurisdiction is US or unknown.
+        # Crucially this is NOT gated on registry_lookup_id: once the Registry
+        # Lookup geo-block is lifted (e.g. on the US-hosted deployment) every match
+        # carries an id, and the old `not registry_lookup_id` gate then silently
+        # skipped EDGAR for genuine public companies (Boeing, Colgate) — leaving
+        # is_public=False and the SEC EDGAR research source disabled. EDGAR's fuzzy
+        # name match (cutoff 70) self-gates: a private company won't match a filer.
+        juris = (entity.jurisdiction or "").lower()
+        if not entity.sec_cik and (juris.startswith("us") or not juris):
             edgar = await _edgar_lookup(client, entity.canonical_name)
             if edgar.get("cik"):
                 edg_canonical = edgar.get("canonical_name") or entity.canonical_name

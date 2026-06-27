@@ -329,16 +329,18 @@ class TestResearchAgentNode:
         doc_c = _make_doc(url="https://c.com")
         doc_d = _make_doc(url="https://d.com")
         doc_e = _make_doc(url="https://e.com")
+        doc_f = _make_doc(url="https://f.com")
 
         with patch("src.agents.research_agent._search_web", new=AsyncMock(return_value=[doc_a])), \
              patch("src.agents.research_agent._fetch_website", new=AsyncMock(return_value=[doc_b])), \
              patch("src.agents.research_agent._fetch_registry_lookup", new=AsyncMock(return_value=[doc_c])), \
              patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[doc_d])), \
-             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[doc_e])):
+             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[doc_e])), \
+             patch("src.agents.research_agent._fetch_news", new=AsyncMock(return_value=[doc_f])):
             result = await research_agent_node(_empty_state(_US_ENTITY))
 
-        assert len(result["documents"]) == 5
-        assert len(result["sources_consulted"]) == 5
+        assert len(result["documents"]) == 6
+        assert len(result["sources_consulted"]) == 6
         assert result["sources_failed"] == []
 
     async def test_one_source_exception_isolates_failure(self):
@@ -348,12 +350,13 @@ class TestResearchAgentNode:
              patch("src.agents.research_agent._fetch_website", new=AsyncMock(return_value=[doc])), \
              patch("src.agents.research_agent._fetch_registry_lookup", new=AsyncMock(return_value=[doc])), \
              patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[doc])), \
-             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[doc])):
+             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[doc])), \
+             patch("src.agents.research_agent._fetch_news", new=AsyncMock(return_value=[doc])):
             result = await research_agent_node(_empty_state(_US_ENTITY))
 
         assert "web_search" in result["sources_failed"]
-        assert len(result["documents"]) == 4
-        assert len(result["sources_consulted"]) == 4
+        assert len(result["documents"]) == 5
+        assert len(result["sources_consulted"]) == 5
 
     async def test_all_sources_fail_returns_empty_with_all_failed(self):
         exc = RuntimeError("all down")
@@ -362,13 +365,14 @@ class TestResearchAgentNode:
              patch("src.agents.research_agent._fetch_website", new=AsyncMock(side_effect=exc)), \
              patch("src.agents.research_agent._fetch_registry_lookup", new=AsyncMock(side_effect=exc)), \
              patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(side_effect=exc)), \
-             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(side_effect=exc)):
+             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(side_effect=exc)), \
+             patch("src.agents.research_agent._fetch_news", new=AsyncMock(side_effect=exc)):
             result = await research_agent_node(_empty_state(_US_ENTITY))
 
         assert result["documents"] == []
         assert result["sources_consulted"] == []
         assert set(result["sources_failed"]) == {
-            "web_search", "website", "registry_lookup", "companies_house", "sec_edgar"
+            "web_search", "website", "registry_lookup", "companies_house", "sec_edgar", "news"
         }
 
     async def test_empty_sources_count_as_consulted_not_failed(self):
@@ -376,11 +380,12 @@ class TestResearchAgentNode:
              patch("src.agents.research_agent._fetch_website", new=AsyncMock(return_value=[])), \
              patch("src.agents.research_agent._fetch_registry_lookup", new=AsyncMock(return_value=[])), \
              patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[])), \
-             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[])):
+             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[])), \
+             patch("src.agents.research_agent._fetch_news", new=AsyncMock(return_value=[])):
             result = await research_agent_node(_empty_state(_US_ENTITY))
 
         assert result["documents"] == []
-        assert len(result["sources_consulted"]) == 5
+        assert len(result["sources_consulted"]) == 6
         assert result["sources_failed"] == []
 
     async def test_guardrail_caps_docs_per_source(self, monkeypatch):
@@ -390,7 +395,9 @@ class TestResearchAgentNode:
         with patch("src.agents.research_agent._search_web", new=AsyncMock(return_value=many_docs)), \
              patch("src.agents.research_agent._fetch_website", new=AsyncMock(return_value=[])), \
              patch("src.agents.research_agent._fetch_registry_lookup", new=AsyncMock(return_value=[])), \
-             patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[])):
+             patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[])), \
+             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[])), \
+             patch("src.agents.research_agent._fetch_news", new=AsyncMock(return_value=[])):
             result = await research_agent_node(_empty_state(_US_ENTITY))
 
         assert len(result["documents"]) == 2
@@ -404,7 +411,9 @@ class TestResearchAgentNode:
         with patch("src.agents.research_agent._search_web", new=AsyncMock(return_value=[new_doc])), \
              patch("src.agents.research_agent._fetch_website", new=AsyncMock(return_value=[])), \
              patch("src.agents.research_agent._fetch_registry_lookup", new=AsyncMock(return_value=[])), \
-             patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[])):
+             patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[])), \
+             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[])), \
+             patch("src.agents.research_agent._fetch_news", new=AsyncMock(return_value=[])):
             result = await research_agent_node(state)
 
         assert len(result["documents"]) == 2
@@ -414,17 +423,21 @@ class TestResearchAgentNode:
         with patch("src.agents.research_agent._search_web", new=AsyncMock(return_value=[])), \
              patch("src.agents.research_agent._fetch_website", new=AsyncMock(return_value=[])), \
              patch("src.agents.research_agent._fetch_registry_lookup", new=AsyncMock(return_value=[])), \
-             patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[])):
+             patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[])), \
+             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[])), \
+             patch("src.agents.research_agent._fetch_news", new=AsyncMock(return_value=[])):
             result = await research_agent_node(_empty_state(_US_ENTITY))
 
-        for source in ("web_search", "website", "registry_lookup", "companies_house"):
+        for source in ("web_search", "website", "registry_lookup", "companies_house", "news"):
             assert result["iteration_counts"][source] == 1
 
     async def test_invalid_return_type_counts_as_failed(self):
         with patch("src.agents.research_agent._search_web", new=AsyncMock(return_value="not a list")), \
              patch("src.agents.research_agent._fetch_website", new=AsyncMock(return_value=[])), \
              patch("src.agents.research_agent._fetch_registry_lookup", new=AsyncMock(return_value=[])), \
-             patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[])):
+             patch("src.agents.research_agent._fetch_companies_house", new=AsyncMock(return_value=[])), \
+             patch("src.agents.research_agent._fetch_sec_edgar", new=AsyncMock(return_value=[])), \
+             patch("src.agents.research_agent._fetch_news", new=AsyncMock(return_value=[])):
             result = await research_agent_node(_empty_state(_US_ENTITY))
 
         assert "web_search" in result["sources_failed"]

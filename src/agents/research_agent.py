@@ -1,12 +1,13 @@
 """
 Research Agent — Task 1.5 / 3.1.4
 
-Gathers raw documents from five concurrent sources:
+Gathers raw documents from six concurrent sources:
   1. web_search       — Tavily search (risk/lawsuit/regulatory queries)
   2. website          — company's own website (heuristic URL, httpx)
   3. registry_lookup  — custom Registry Lookup MCP tools (direct call)
   4. companies_house  — custom Companies House MCP tools (UK entities only)
   5. sec_edgar        — custom SEC EDGAR MCP tools (US public companies only)
+  6. news             — custom News API MCP tools (all companies; skipped w/o key)
 
 All sources run concurrently via asyncio.gather(return_exceptions=True).
 A failing source is recorded in sources_failed and never crashes the pipeline.
@@ -367,6 +368,61 @@ async def _fetch_sec_edgar(entity: ResolvedEntity) -> list[RawDocument]:
     return docs[:settings.max_docs_per_source]
 
 
+# ── Source 6: News API MCP — 5.6 (all companies) ─────────────────────────────
+
+async def _fetch_news(entity: ResolvedEntity) -> list[RawDocument]:
+    """Fetch recent news articles from the custom News API MCP server.
+
+    Demonstrates the MCP extensibility thesis — registering this source required
+    no other agent-code changes. Silently returns [] when NEWS_API_KEY is unset
+    (the tool reports {"error": "missing_key"}) so the pipeline degrades cleanly.
+    """
+    if not settings.news_api_key:
+        return []
+
+    from src.mcp_servers.news.server import search_news
+
+    result = await search_news(entity.canonical_name)
+
+    if "error" in result:
+        logger.info(
+            "News API unavailable (%s) for '%s'",
+            result["error"], entity.canonical_name,
+        )
+        return []
+
+    docs: list[RawDocument] = []
+    for article in result.get("articles", []):
+        url = article.get("url", "")
+        if not url:
+            continue
+        # Combine the article's text fields — NewsAPI truncates `content` on the
+        # free tier, so title + description carry most of the signal.
+        parts = [
+            article.get("title", ""),
+            article.get("description", ""),
+            article.get("content", ""),
+        ]
+        text = "\n\n".join(p for p in parts if p).strip()
+        if len(text) < 50:
+            continue
+        docs.append(RawDocument(
+            source_url=url,
+            source_type=SourceType.NEWS_ARTICLE,
+            raw_text=text[:50_000],
+            entity_name=entity.canonical_name,
+            metadata={
+                "source": "news_api",
+                "title": article.get("title", ""),
+                "news_source": article.get("source", ""),
+                "author": article.get("author", ""),
+                "published_at": article.get("published_at", ""),
+            },
+        ))
+
+    return docs[:settings.max_docs_per_source]
+
+
 # ── Research Agent node (1.5.5, 1.5.6) ───────────────────────────────────────
 
 async def research_agent_node(state: ResearchState) -> dict:
@@ -388,6 +444,7 @@ async def research_agent_node(state: ResearchState) -> dict:
         "registry_lookup": _m._fetch_registry_lookup,
         "companies_house": _m._fetch_companies_house,
         "sec_edgar": _m._fetch_sec_edgar,
+        "news": _m._fetch_news,
     }
 
     entity = state["resolved_entity"]

@@ -1,0 +1,286 @@
+embedder: all-MiniLM-L6-v2 (embed scale)
+{
+  "boeing_runs": [
+    {
+      "file": "boeing_live1_20260627_201041.json",
+      "risk_sigs": 45,
+      "positive": 8,
+      "sufficiency": "ADEQUATE",
+      "recall": 0.8333333333333334,
+      "matched_truth": 10,
+      "total_truth": 12,
+      "missed_truth_ids": [
+        7,
+        12
+      ],
+      "precision_proxy": 0.6888888888888889,
+      "matched_pred": 31,
+      "total_pred": 45,
+      "severity_pairs": 10,
+      "severity_exact": 0.5,
+      "severity_within_one": 1.0,
+      "match_scale": "embed",
+      "data_suff_acc": {
+        "exact": false,
+        "within_one": true,
+        "pred": "ADEQUATE",
+        "truth": "RICH"
+      },
+      "verification": {
+        "signals_extracted": 53,
+        "signals_rejected": 0,
+        "rejection_rate": 0.0,
+        "verification_pass_rate": 1.0
+      },
+      "dedup": {
+        "total_signals": 45,
+        "corroborated": 1,
+        "corroborated_rate": 0.022222222222222223,
+        "contradictory": 1
+      },
+      "citation": {
+        "citations": 39,
+        "grounded": 1.0,
+        "orphans": 0
+      },
+      "guardrails": {
+        "llm_call_count": 47,
+        "max_llm_calls": 50,
+        "estimated_cost_usd": 0.0144,
+        "max_cost_usd": 1.0,
+        "compliant": true
+      },
+      "cost_usd": 0.0144,
+      "latency_s": 233.24
+    },
+    {
+      "file": "boeing_live2_20260627_202159.json",
+      "risk_sigs": 38,
+      "positive": 14,
+      "sufficiency": "ADEQUATE",
+      "recall": 0.8333333333333334,
+      "matched_truth": 10,
+      "total_truth": 12,
+      "missed_truth_ids": [
+        7,
+        12
+      ],
+      "precision_proxy": 0.6052631578947368,
+      "matched_pred": 23,
+      "total_pred": 38,
+      "severity_pairs": 10,
+      "severity_exact": 0.4,
+      "severity_within_one": 0.9,
+      "match_scale": "embed",
+      "data_suff_acc": {
+        "exact": false,
+        "within_one": true,
+        "pred": "ADEQUATE",
+        "truth": "RICH"
+      },
+      "verification": {
+        "signals_extracted": 52,
+        "signals_rejected": 0,
+        "rejection_rate": 0.0,
+        "verification_pass_rate": 1.0
+      },
+      "dedup": {
+        "total_signals": 38,
+        "corroborated": 1,
+        "corroborated_rate": 0.02631578947368421,
+        "contradictory": 0
+      },
+      "citation": {
+        "citations": 39,
+        "grounded": 1.0,
+        "orphans": 0
+      },
+      "guardrails": {
+        "llm_call_count": 48,
+        "max_llm_calls": 50,
+        "estimated_cost_usd": 0.0147,
+        "max_cost_usd": 1.0,
+        "compliant": true
+      },
+      "cost_usd": 0.0147,
+      "latency_s": 192.57
+    },
+    {
+      "file": "boeing_live3_20260627_202433.json",
+      "risk_sigs": 26,
+      "positive": 14,
+      "sufficiency": "ADEQUATE",
+      "recall": 0.75,
+      "matched_truth": 9,
+      "total_truth": 12,
+      "missed_truth_ids": [
+        4,
+        7,
+        12
+      ],
+      "precision_proxy": 0.46153846153846156,
+      "matched_pred": 12,
+      "total_pred": 26,
+      "severity_pairs": 9,
+      "severity_exact": 0.6666666666666666,
+      "severity_within_one": 1.0,
+      "match_scale": "embed",
+      "data_suff_acc": {
+        "exact": false,
+        "within_one": true,
+        "pred": "ADEQUATE",
+        "truth": "RICH"
+      },
+      "verification": {
+        "signals_extracted": 40,
+        "signals_rejected": 0,
+        "rejection_rate": 0.0,
+        "verification_pass_rate": 1.0
+      },
+      "dedup": {
+        "total_signals": 26,
+        "corroborated": 1,
+        "corroborated_rate": 0.038461538461538464,
+        "contradictory": 1
+      },
+      "citation": {
+        "citations": 15,
+        "grounded": 1.0,
+        "orphans": 0
+      },
+      "guardrails": {
+        "llm_call_count": 46,
+        "max_llm_calls": 50,
+        "estimated_cost_usd": 0.0122,
+        "max_cost_usd": 1.0,
+        "compliant": true
+      },
+      "cost_usd": 0.0122,
+      "latency_s": 110.53
+    }
+  ],
+  "boeing_consistency": {
+    "runs": 3,
+    "mean_jaccard": 0.38138740344622696,
+    "min_jaccard": 0.3181818181818182,
+    "pairwise": [
+      0.451,
+      0.375,
+      0.318
+    ]
+  },
+  "stripe": {
+    "file": "stripe_live_20260627_201431.json",
+    "risk_sigs": 35,
+    "positive": 12,
+    "sufficiency": "ADEQUATE",
+    "recall": 0.7142857142857143,
+    "matched_truth": 5,
+    "total_truth": 7,
+    "missed_truth_ids": [
+      4,
+      7
+    ],
+    "precision_proxy": 0.9714285714285714,
+    "matched_pred": 34,
+    "total_pred": 35,
+    "severity_pairs": 5,
+    "severity_exact": 0.2,
+    "severity_within_one": 0.8,
+    "match_scale": "embed",
+    "data_suff_acc": {
+      "exact": true,
+      "within_one": true,
+      "pred": "ADEQUATE",
+      "truth": "ADEQUATE"
+    },
+    "verification": {
+      "signals_extracted": 47,
+      "signals_rejected": 0,
+      "rejection_rate": 0.0,
+      "verification_pass_rate": 1.0
+    },
+    "dedup": {
+      "total_signals": 35,
+      "corroborated": 0,
+      "corroborated_rate": 0.0,
+      "contradictory": 0
+    },
+    "citation": {
+      "citations": 25,
+      "grounded": 1.0,
+      "orphans": 0
+    },
+    "guardrails": {
+      "llm_call_count": 47,
+      "max_llm_calls": 50,
+      "estimated_cost_usd": 0.0124,
+      "max_cost_usd": 1.0,
+      "compliant": true
+    },
+    "cost_usd": 0.0124,
+    "latency_s": 204.04
+  },
+  "chime": {
+    "file": "chime_live_20260627_201801.json",
+    "risk_sigs": 38,
+    "positive": 8,
+    "sufficiency": "ADEQUATE",
+    "recall": 1.0,
+    "matched_truth": 8,
+    "total_truth": 8,
+    "missed_truth_ids": [],
+    "precision_proxy": 0.868421052631579,
+    "matched_pred": 33,
+    "total_pred": 38,
+    "severity_pairs": 8,
+    "severity_exact": 0.5,
+    "severity_within_one": 0.625,
+    "match_scale": "embed",
+    "data_suff_acc": {
+      "exact": true,
+      "within_one": true,
+      "pred": "ADEQUATE",
+      "truth": "ADEQUATE"
+    },
+    "verification": {
+      "signals_extracted": 46,
+      "signals_rejected": 0,
+      "rejection_rate": 0.0,
+      "verification_pass_rate": 1.0
+    },
+    "dedup": {
+      "total_signals": 38,
+      "corroborated": 4,
+      "corroborated_rate": 0.10526315789473684,
+      "contradictory": 0
+    },
+    "citation": {
+      "citations": 33,
+      "grounded": 1.0,
+      "orphans": 0
+    },
+    "guardrails": {
+      "llm_call_count": 46,
+      "max_llm_calls": 50,
+      "estimated_cost_usd": 0.0133,
+      "max_cost_usd": 1.0,
+      "compliant": true
+    },
+    "cost_usd": 0.0133,
+    "latency_s": 170.27
+  },
+  "aggregate": {
+    "runs": 5,
+    "mean_recall": 0.8261904761904763,
+    "mean_severity_exact": 0.4533333333333333,
+    "mean_rejection_rate": 0.0,
+    "avg_cost_usd": 0.0134,
+    "latency": {
+      "p50": 192.6,
+      "p95": 227.4,
+      "n": 5
+    },
+    "guardrail_compliance_rate": 1.0
+  }
+}

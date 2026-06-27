@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     tavily_api_key: str
     registry_lookup_api_key: str
     companies_house_api_key: str
+    news_api_key: Optional[str] = None  # NewsAPI.org (Phase 5.6); source skipped if absent
     contact_email: str = "laakshparikh@gmail.com"  # required by SEC EDGAR User-Agent policy
 
     # ── Storage ───────────────────────────────────────────────────────────────

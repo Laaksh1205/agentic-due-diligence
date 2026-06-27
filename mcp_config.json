@@ -17,6 +17,12 @@
       "args": ["-m", "src.mcp_servers.sec_edgar.server"],
       "description": "SEC EDGAR MCP — US public company filings (10-K, 10-Q, 8-K) and XBRL financial facts. No API key needed. Rate limit: 10 req/sec.",
       "tools": ["search_filings", "get_filing_text", "get_company_facts"]
+    },
+    "news": {
+      "command": "python",
+      "args": ["-m", "src.mcp_servers.news.server"],
+      "description": "News MCP — recent news articles via NewsAPI.org (lawsuits, investigations, fines, reputational events). Auth via X-Api-Key header. Free tier: 100 requests/day.",
+      "tools": ["search_news"]
     }
   }
 }
