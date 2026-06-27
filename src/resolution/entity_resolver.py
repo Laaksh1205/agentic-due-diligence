@@ -207,6 +207,23 @@ def _parse_rl_result(result: dict, raw_input: str) -> ResolvedEntity:
     )
 
 
+def _flatten_str(value) -> str:
+    """Coerce a registry field to a display string.
+
+    Registry Lookup returns some fields (e.g. registered_address) as nested
+    objects; the picker only needs a short string, so join dict values.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return ", ".join(_flatten_str(v) for v in value.values() if v)
+    if isinstance(value, (list, tuple)):
+        return ", ".join(_flatten_str(v) for v in value if v)
+    return str(value)
+
+
 def _candidate_view(result: dict, raw_input: str) -> dict:
     """Compact, display-ready candidate for the interactive picker (design §8c)."""
     parsed = _parse_rl_result(result, raw_input)
@@ -214,19 +231,17 @@ def _candidate_view(result: dict, raw_input: str) -> dict:
         "registry_id": parsed.registry_lookup_id or "",
         "name": parsed.canonical_name,
         "jurisdiction": parsed.jurisdiction or "",
-        "status": (
+        "status": _flatten_str(
             result.get("status")
             or result.get("company_status")
             or result.get("current_status")
-            or ""
         ),
-        "company_type": result.get("company_type") or result.get("type") or "",
-        "address": (
+        "company_type": _flatten_str(result.get("company_type") or result.get("type")),
+        "address": _flatten_str(
             result.get("registered_address")
             or result.get("address")
             or result.get("registered_office_address")
-            or ""
-        ),
+        )[:160],
         "is_public": parsed.is_public,
     }
 

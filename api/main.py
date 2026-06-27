@@ -143,12 +143,17 @@ async def resolve_entity(req: ResolveRequest) -> ResolveResponse:
     """
     from src.resolution.entity_resolver import EntityResolver
 
+    out: list[Candidate] = []
     try:
         cands = await EntityResolver().search_candidates(req.company_name, req.jurisdiction)
+        for c in cands:
+            try:
+                out.append(Candidate(**c))
+            except Exception as exc:  # skip a malformed candidate, don't 500
+                logger.warning("skipping candidate for '%s': %s", req.company_name, exc)
     except Exception as exc:  # never let resolution errors break the UI
         logger.warning("resolve failed for '%s': %s", req.company_name, exc)
-        cands = []
-    return ResolveResponse(candidates=[Candidate(**c) for c in cands])
+    return ResolveResponse(candidates=out)
 
 
 @app.post("/api/assess", response_model=AssessResponse, status_code=202)

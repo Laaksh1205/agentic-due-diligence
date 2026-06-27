@@ -229,7 +229,9 @@ class TestEntityResolverUnit:
         monkeypatch.setattr("src.config.settings.use_cache", False)
         results = [
             {"id": "1", "legal_name": "Formlabs Inc", "jurisdiction_code": "us-ma",
-             "status": "active", "company_type": "corporation"},
+             "status": "active", "company_type": "corporation",
+             # Registry Lookup often returns address as a nested object, not a string.
+             "registered_address": {"locality": "Somerville", "region": "MA", "country": "US"}},
             {"id": "2", "legal_name": "Formlabs KK", "jurisdiction_code": "jp", "status": "active"},
         ]
         with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(results, False)):
@@ -239,6 +241,8 @@ class TestEntityResolverUnit:
         assert cands[0]["name"] == "Formlabs Inc" and cands[0]["jurisdiction"] == "us-ma"
         assert cands[0]["status"] == "active"
         assert cands[1]["jurisdiction"] == "jp"
+        # Nested address object must be flattened to a string (else /api/resolve 500s).
+        assert isinstance(cands[0]["address"], str) and "Somerville" in cands[0]["address"]
 
     async def test_resolve_by_registry_id_selects_exact(self, resolver, tmp_path, monkeypatch):
         """resolve(registry_id=...) picks that exact candidate, not the top-ranked."""
