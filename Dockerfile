@@ -44,7 +44,10 @@ COPY knowledge_base ./knowledge_base
 # This drops the final image from ~8.8 GB to ~2.5 GB with zero runtime cost.
 RUN pip install --upgrade pip \
  && pip install --index-url https://download.pytorch.org/whl/cpu torch \
- && pip install -e ".[web]"
+ && pip install -e ".[web]" \
+ # xhtml2pdf is the pure-Python PDF renderer (reportlab-backed) — no native GTK
+ # libs needed, unlike weasyprint — so /export/pdf works in the slim image.
+ && pip install "xhtml2pdf>=0.2.17"
 
 # Bring in the pre-built static frontend from stage 1.
 COPY --from=frontend /app/frontend/out ./frontend/out
