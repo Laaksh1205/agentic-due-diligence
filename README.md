@@ -156,54 +156,55 @@ spins up a self-hosted instance on a shared network instead.
 
 ## Evaluation results
 
-Live runs against the deployed Hugging Face Space (US region, 2026-06-27),
-scored by [`evaluation/run_eval.py`](evaluation/run_eval.py) against the Phase-0
-manual baseline (semantic matching, `all-MiniLM-L6-v2`, cosine ≥ 0.45). These
-supersede the earlier dev-machine runs: the Registry Lookup API is Cloudflare-
-blocked (HTTP 403) from the original dev region but reachable from the US-hosted
-Space, so the registry source now contributes on every run (Stripe's signal count
-roughly tripled, 10 → 35, as a result).
+Live runs against the deployed Hugging Face Space (US region, 2026-06-27, commit
+`b799912`), scored by [`evaluation/run_eval.py`](evaluation/run_eval.py) against
+the Phase-0 manual baseline (semantic matching, `all-MiniLM-L6-v2`, cosine ≥ 0.45).
+These supersede the earlier dev-machine runs for two reasons: (a) the Registry
+Lookup API is Cloudflare-blocked (HTTP 403) from the dev region but reachable from
+the US-hosted Space, so the registry source contributes on every run; and (b) a
+resolver fix now resolves a SEC CIK for public companies, re-enabling SEC EDGAR
+enrichment — Boeing resolves `is_public=true` / CIK 0000012927 and reaches RICH
+data sufficiency, while the News MCP source lifts document diversity across the board.
 
 | Company | Signals | Recall vs human | Precision-proxy | Severity exact | Data sufficiency | Cost | Latency |
 |---|---|---|---|---|---|---|---|
-| Boeing (3 runs) | 26–45 | **75–83%** | 46–69% | 40–67% | ADEQUATE | ~$0.012–0.015 | ~1.8–3.9 min |
-| Stripe (private) | 35 | **71%** | 97% | 20% | ADEQUATE | ~$0.012 | ~3.4 min |
-| Chime (private) | 38 | **100%** | 87% | 50% | ADEQUATE | ~$0.013 | ~2.8 min |
+| Boeing (3 runs) | 39–53 | 58–75% | 51–59% | 43–44% | **RICH** | ~$0.015–0.021 | ~2.0–3.8 min |
+| Stripe (private) | 35 | **71%** | 74% | 40% | RICH | ~$0.012 | ~2.7 min |
+| Chime (private) | 15 | **100%** | 80% | 50% | RICH | ~$0.011 | ~2.5 min |
 
-**Aggregate (5 runs):** mean recall **82.6%** · latency **p50 193 s / p95 227 s** ·
-avg cost **~$0.013** · guardrail compliance **100%** · verification rejection 0%.
+**Aggregate (5 runs):** mean recall **76%** · latency **p50 164 s / p95 216 s** ·
+avg cost **~$0.015** · guardrail compliance **100%** · verification rejection 0%.
 
-**RAGAS (LLM judge, Boeing live):** faithfulness **100%** · context-precision
-**82%** · answer-relevancy **47%** — implemented natively against the project's
+**RAGAS (LLM judge, Boeing live):** faithfulness **90%** · context-precision
+**100%** · answer-relevancy **50%** — implemented natively against the project's
 own Gemini provider + embeddings ([`evaluation/ragas_eval.py`](evaluation/ragas_eval.py)),
 since the published `ragas` package's import is broken against the installed
 langchain stack. (LLM-judge metrics vary run-to-run; faithfulness is corroborated
-by 0 orphan citations across all 5 live runs.)
+by 0 orphan citations across all live runs.)
 
-**Consistency (3 live Boeing runs):** mean Jaccard **0.38** (min 0.32, target ≥ 0.80).
+**Consistency (3 live Boeing runs):** mean Jaccard **0.54** (min 0.44, target ≥ 0.80).
 
 ### System vs. human analyst
 
 | | Human (30 min/company) | System |
 |---|---|---|
-| Boeing | 12 major risks | 9–10 of 12 recovered + ~26–45 granular signals |
-| Stripe | 7 risks | 5 of 7 recovered at 97% precision-proxy |
+| Boeing | 12 major risks | 7–9 of 12 recovered + ~39–53 granular signals |
+| Stripe | 7 risks | 5 of 7 recovered at 74% precision-proxy |
 | Time | ~30 min | ~3 min |
 | Cost | analyst time | ~1¢ |
 
 Full write-up: [`evaluation/system_vs_human.md`](evaluation/system_vs_human.md).
 
-> **Honest open items:** (1) severity calibration is the weakest dimension (the
-> rubric scorer is conservative vs. the human's CRITICAL-heavy labels); (2)
-> run-to-run consistency (0.38 Jaccard) is below the 0.80 target; and (3) once
-> Registry Lookup came online server-side, a resolver regression flagged genuine
-> public companies (Boeing, Colgate) as `is_public=false` with no CIK — skipping
-> the SEC EDGAR enrichment path and capping data sufficiency at ADEQUATE. This is
-> now fixed in [`entity_resolver.py`](src/resolution/entity_resolver.py) (EDGAR CIK
-> resolution is attempted for every US/unknown entity, guarded by a first-token
-> name match so private companies aren't mis-bound, e.g. Stripe→Stride); the table
-> above predates that fix being redeployed, after which Boeing is expected to
-> resolve a CIK and return toward RICH. These are documented rather than hidden.
+> **Honest open items:** (1) severity calibration remains the weakest dimension
+> (severity exact-match ~44%; the rubric scorer is conservative vs. the human's
+> CRITICAL-heavy labels); and (2) run-to-run consistency (0.54 Jaccard) has
+> improved but is still below the 0.80 target. (A prior resolver regression that
+> mis-flagged public companies as private — disabling SEC EDGAR enrichment — has
+> been fixed in [`entity_resolver.py`](src/resolution/entity_resolver.py) and
+> verified live: EDGAR CIK resolution now runs for every US/unknown entity, guarded
+> by a first-token name match so private companies aren't mis-bound, e.g.
+> Stripe→Stride, so Boeing resolves a CIK and reaches RICH.) These are documented
+> rather than hidden.
 
 ---
 
@@ -211,7 +212,7 @@ Full write-up: [`evaluation/system_vs_human.md`](evaluation/system_vs_human.md).
 
 | Item | Value |
 |---|---|
-| Cost per assessment | **~$0.012–0.016** (Gemini 2.5 Flash-Lite, structured output) |
+| Cost per assessment | **~$0.011–0.021** (avg ~$0.015; Gemini 2.5 Flash-Lite, structured output) |
 | LLM-call guardrail | 50 calls/run hard cap (synthesis reserved) |
 | Cost guardrail | $1.00/run hard cap → pipeline degrades to a partial report |
 | Data sources | All free tier: Tavily (1k/mo), Registry Lookup (5k/mo), Companies House (unlimited), SEC EDGAR (free) |
