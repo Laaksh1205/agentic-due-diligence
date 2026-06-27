@@ -45,6 +45,7 @@ export function SearchForm() {
   const [resolving, setResolving] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [chosen, setChosen] = useState<string>(AS_ENTERED); // registry_id or AS_ENTERED
+  const [noCountryMatch, setNoCountryMatch] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,12 +57,21 @@ export function SearchForm() {
     setPickerOpen(true);
     setResolving(true);
     setCandidates([]);
+    setNoCountryMatch(false);
     setChosen(AS_ENTERED);
     try {
-      const found = await resolveCandidates(company.trim(), country);
-      setCandidates(found);
+      // Fetch broadly (no server-side jurisdiction — registry codes are
+      // sub-national, e.g. us-ca, so a coarse country over-filters to nothing)
+      // and narrow by country prefix on the client instead.
+      const found = await resolveCandidates(company.trim(), "");
+      const filtered = country
+        ? found.filter((c) => (c.jurisdiction || "").toLowerCase().startsWith(country))
+        : found;
+      const display = filtered.length > 0 ? filtered : found;
+      setNoCountryMatch(country !== "" && filtered.length === 0 && found.length > 0);
+      setCandidates(display);
       // Default to the top match when we have one — keeps the happy path one click.
-      if (found.length > 0 && found[0].registry_id) setChosen(found[0].registry_id);
+      if (display.length > 0 && display[0].registry_id) setChosen(display[0].registry_id);
     } catch {
       setCandidates([]); // graceful — fall back to name-based research
     } finally {
@@ -182,6 +192,11 @@ export function SearchForm() {
             {candidates.length === 0 && (
               <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
                 No registry matches found — proceeding with name-based research for “{company.trim()}”.
+              </p>
+            )}
+            {noCountryMatch && (
+              <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                No matches in the selected country — showing all matches.
               </p>
             )}
             {candidates.map((c) => (

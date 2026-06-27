@@ -144,7 +144,7 @@ async def _rl_search(
     ``jurisdiction`` (e.g. 'us', 'gb', 'us-de') narrows the search server-side —
     the single most effective disambiguator for common names.
     """
-    params: dict = {"q": query, "limit": 10 if jurisdiction else 5}
+    params: dict = {"q": query, "limit": 10}
     if jurisdiction:
         params["jurisdiction_code"] = jurisdiction
     try:
@@ -381,7 +381,7 @@ class EntityResolver:
         return entity
 
     async def search_candidates(
-        self, raw_input: str, jurisdiction: str = "", limit: int = 5
+        self, raw_input: str, jurisdiction: str = "", limit: int = 8
     ) -> list[dict]:
         """Return up to ``limit`` registry candidates for the picker (design §8c).
 
