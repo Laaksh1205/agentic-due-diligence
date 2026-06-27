@@ -1,0 +1,64 @@
+flowchart TB
+    user(["User: company name + scope"])
+
+    subgraph UI["Presentation layer"]
+        cli["Rich CLI"]
+        web["Next.js 14 web UI"]
+        api["FastAPI + WebSocket"]
+    end
+
+    user --> UI
+    web <--> api
+
+    subgraph SUP["LangGraph Supervisor (guardrails: 50 LLM calls / $1.00 / 600s)"]
+        direction TB
+        er["entity_resolution"]
+        rs["research"]
+        ds["data_sufficiency_check"]
+        ex["extraction"]
+        ra["risk_analysis"]
+        hg["hitl_gate"]
+        sy["synthesis"]
+        pr["presentation"]
+        er --> rs --> ds --> ex --> ra --> hg --> sy --> pr
+    end
+
+    UI --> SUP
+
+    subgraph MCP["Custom MCP servers (data sources)"]
+        reg["Registry Lookup MCP\n521M+ entities / 309 jurisdictions"]
+        ch["Companies House MCP\nUK officers, filings"]
+        sec["SEC EDGAR MCP\n10-K / 10-Q / 8-K, XBRL"]
+        tav["Tavily web search"]
+    end
+
+    rs --> MCP
+
+    subgraph ANALYSIS["Analysis & grounding"]
+        qa["Quote-anchor verification\n(rapidfuzz, reject < 70)"]
+        dedup["Embedding dedup\n(all-MiniLM-L6-v2, cos >= 0.85)"]
+        rag["RAG severity scoring\n(FAISS over rubric/NIST/regulatory KB)"]
+        temporal["Temporal decay"]
+    end
+
+    ex --> qa
+    ra --> dedup
+    ra --> rag
+    ra --> temporal
+
+    subgraph OUT["Outputs"]
+        report["DueDiligenceReport\n(citation-grounded)"]
+        pdf["PDF / JSON export"]
+        sqlite[("SQLite: entities,\nsignals, reports, audit")]
+    end
+
+    sy --> report --> pdf
+    SUP --> sqlite
+
+    lf["Langfuse tracing\n(per-run + per-call spans)"]
+    SUP -.-> lf
+
+    llm["Gemini 2.5 Flash-Lite\n(structured Pydantic output)"]
+    ex -.-> llm
+    ra -.-> llm
+    sy -.-> llm

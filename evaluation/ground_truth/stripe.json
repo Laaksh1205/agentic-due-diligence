@@ -1,0 +1,76 @@
+{
+  "company": "Stripe",
+  "canonical_name": "STRIPE, INC.",
+  "is_public": false,
+  "data_sufficiency_tier": "ADEQUATE",
+  "signals_found": 7,
+  "source_types": ["regulatory", "news_article", "company_website", "class_action"],
+  "research_date": "2026-06-25",
+  "signals": [
+    {
+      "id": 1,
+      "text": "FTC warning letter (March 2026): FTC Chair Andrew Ferguson sent a letter to Stripe CEO threatening enforcement action if Stripe denies services based on political or religious grounds (debanking concern).",
+      "source_url": "https://www.bankingdive.com/news/ftc-threatens-enforcement-action-debanking-visa-mastercard-paypal-stripe/815969/",
+      "source_type": "news_article",
+      "risk_category": "REGULATORY",
+      "severity": "HIGH"
+    },
+    {
+      "id": 2,
+      "text": "Bank charter opposition: Stripe's application for national trust banking charter opposed by NCRC, Bank Policy Institute, and others. Cited 'history of legal trouble' and 'disregard for enforcement, governance, compliance, and consumer protection laws.' OCC decision pending.",
+      "source_url": "https://www.paymentsdive.com/news/stripe-faces-bank-charter-pushback/806275/",
+      "source_type": "regulatory",
+      "risk_category": "REGULATORY",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 3,
+      "text": "Consumer data class action: Stripe's tracking code embedded on merchant websites collected consumer PII (names, email addresses, delivery addresses, IP addresses, geolocation, browser activity, payment data) without user consent. Class action pending.",
+      "source_url": "https://bytebridge.medium.com/stripe-inc-a-comprehensive-report-d6c422b66ce1",
+      "source_type": "news_article",
+      "risk_category": "LEGAL",
+      "severity": "HIGH"
+    },
+    {
+      "id": 4,
+      "text": "Layoffs: 1,075 employees in May 2026 plus 81 in June 2026 per Illinois state WARN Act filing. No public explanation given.",
+      "source_url": "https://bytebridge.medium.com/stripe-inc-a-comprehensive-report-d6c422b66ce1",
+      "source_type": "news_article",
+      "risk_category": "OPERATIONAL",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 5,
+      "text": "Regulatory compliance history flagged: Advocacy organizations opposing OCC charter explicitly cited Stripe's compliance governance record. No specific enforcement action from CFPB or DOJ found, but reputational concern in regulatory community.",
+      "source_url": "https://ncrc.org/ncrc-comment-in-opposition-to-stripe-incs-national-trust-charter-application/",
+      "source_type": "regulatory",
+      "risk_category": "REGULATORY",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 6,
+      "text": "DORA compliance burden (EU): Digital Operational Resilience Act effective January 2025. As a technology provider to EU financial institutions, Stripe faces mandatory technical controls and governance requirements. Compliance cost significant.",
+      "source_url": "https://www.corporatecomplianceinsights.com/2026-operational-guide-cybersecurity-ai-governance-emerging-risks/",
+      "source_type": "news_article",
+      "risk_category": "REGULATORY",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 7,
+      "text": "Private company opacity: No audited financial statements publicly available. Last confirmed external valuation $65B (2021). Internal secondary market valuation reportedly ~$50B in 2023. Profitability, debt levels, and burn rate not disclosed.",
+      "source_url": "https://stripe.com/annual-updates/2024",
+      "source_type": "company_website",
+      "risk_category": "FINANCIAL",
+      "severity": "MEDIUM"
+    }
+  ],
+  "not_findable_from_free_sources": [
+    "Revenue breakdown by product",
+    "Net income/loss",
+    "Employee headcount trends over time",
+    "Internal compliance program details",
+    "Specific KYC/AML incident history",
+    "Board composition and conflicts of interest",
+    "Investor terms and liquidation preferences"
+  ]
+}

@@ -1,0 +1,263 @@
+{
+  "precision": 0.8888888888888888,
+  "recall": 0.9259259259259259,
+  "signals_extracted": 18,
+  "good": 16,
+  "docs_scored": 10,
+  "per_doc": [
+    {
+      "id": "01_news_recall",
+      "extracted": 1,
+      "good": 1,
+      "must_find": 2,
+      "covered": 2,
+      "signals": [
+        {
+          "polarity": "NEGATIVE",
+          "category": "OPERATIONAL",
+          "severity": "HIGH",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Northgate Motors initiated a recall of 120,000 vehicles on March 14, 2025, due to a faulty brake sensor implicated in three reported crashes."
+        }
+      ]
+    },
+    {
+      "id": "02_sec_10k",
+      "extracted": 4,
+      "good": 4,
+      "must_find": 3,
+      "covered": 3,
+      "signals": [
+        {
+          "polarity": "NEGATIVE",
+          "category": "FINANCIAL",
+          "severity": "HIGH",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Helix Energy's revenue decreased by 31% to $540 million in fiscal 2024."
+        },
+        {
+          "polarity": "NEGATIVE",
+          "category": "FINANCIAL",
+          "severity": "CRITICAL",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Independent auditors expressed substantial doubt about Helix Energy's ability to continue as a going concern."
+        },
+        {
+          "polarity": "NEGATIVE",
+          "category": "OPERATIONAL",
+          "severity": "HIGH",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "A single customer accounted for 47% of Helix Energy's revenue."
+        },
+        {
+          "polarity": "POSITIVE",
+          "category": "FINANCIAL",
+          "severity": "INFO",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Helix Energy concluded the year with $200 million in unrestricted cash."
+        }
+      ]
+    },
+    {
+      "id": "03_registry",
+      "extracted": 2,
+      "good": 1,
+      "must_find": 2,
+      "covered": 2,
+      "signals": [
+        {
+          "polarity": "NEGATIVE",
+          "category": "OPERATIONAL",
+          "severity": "CRITICAL",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Brightwater Holdings Ltd is currently active but faces a proposal to be struck off the company register."
+        },
+        {
+          "polarity": "NEGATIVE",
+          "category": "FINANCIAL",
+          "severity": "MEDIUM",
+          "verbatim": true,
+          "trap": true,
+          "ok": false,
+          "text": "The company has one outstanding charge that was registered in 2022."
+        }
+      ]
+    },
+    {
+      "id": "04_regulatory",
+      "extracted": 2,
+      "good": 1,
+      "must_find": 3,
+      "covered": 3,
+      "signals": [
+        {
+          "polarity": "NEGATIVE",
+          "category": "REGULATORY",
+          "severity": "HIGH",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "The FDA issued a Warning Letter to Vela Pharma in February 2025 due to data integrity violations at its Ohio plant."
+        },
+        {
+          "polarity": "NEGATIVE",
+          "category": "ESG",
+          "severity": "HIGH",
+          "verbatim": true,
+          "trap": true,
+          "ok": false,
+          "text": "The EPA assessed a $4.1 million fine against Vela Pharma in 2024 for air-quality violations."
+        }
+      ]
+    },
+    {
+      "id": "05_breach",
+      "extracted": 1,
+      "good": 1,
+      "must_find": 3,
+      "covered": 2,
+      "signals": [
+        {
+          "polarity": "NEGATIVE",
+          "category": "CYBERSECURITY",
+          "severity": "CRITICAL",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "DataNimbus confirmed a data breach in October 2024 that exposed 3.2 million customer records."
+        }
+      ]
+    },
+    {
+      "id": "06_sanctions",
+      "extracted": 1,
+      "good": 1,
+      "must_find": 2,
+      "covered": 2,
+      "signals": [
+        {
+          "polarity": "NEGATIVE",
+          "category": "REGULATORY",
+          "severity": "CRITICAL",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Orion Trading FZE was added to the OFAC Specially Designated Nationals list on January 9, 2025, due to sanctions evasion."
+        }
+      ]
+    },
+    {
+      "id": "07_positive_site",
+      "extracted": 2,
+      "good": 2,
+      "must_find": 2,
+      "covered": 2,
+      "signals": [
+        {
+          "polarity": "POSITIVE",
+          "category": "ESG",
+          "severity": "INFO",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Verdant Foods became a Certified B Corporation in 2024."
+        },
+        {
+          "polarity": "POSITIVE",
+          "category": "CYBERSECURITY",
+          "severity": "INFO",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Verdant Foods achieved SOC 2 Type II compliance in 2024."
+        }
+      ]
+    },
+    {
+      "id": "08_litigation",
+      "extracted": 2,
+      "good": 2,
+      "must_find": 4,
+      "covered": 4,
+      "signals": [
+        {
+          "polarity": "NEGATIVE",
+          "category": "LEGAL",
+          "severity": "HIGH",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Cobalt Systems settled a patent-infringement lawsuit for $26 million in 2023."
+        },
+        {
+          "polarity": "NEGATIVE",
+          "category": "LEGAL",
+          "severity": "MEDIUM",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "An antitrust complaint filed by a competitor against Cobalt Systems remains pending as of early 2025."
+        }
+      ]
+    },
+    {
+      "id": "09_esg_labor",
+      "extracted": 1,
+      "good": 1,
+      "must_find": 3,
+      "covered": 2,
+      "signals": [
+        {
+          "polarity": "NEGATIVE",
+          "category": "ESG",
+          "severity": "HIGH",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Summit Apparel was fined $900,000 in 2024 by the Department of Labor for child-labor violations at a subcontractor."
+        }
+      ]
+    },
+    {
+      "id": "10_financial_downgrade",
+      "extracted": 2,
+      "good": 2,
+      "must_find": 3,
+      "covered": 3,
+      "signals": [
+        {
+          "polarity": "NEGATIVE",
+          "category": "FINANCIAL",
+          "severity": "HIGH",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Moody's downgraded Aurora Telecom's credit rating to B3 in November 2024 due to a breached debt covenant."
+        },
+        {
+          "polarity": "POSITIVE",
+          "category": "FINANCIAL",
+          "severity": "INFO",
+          "verbatim": true,
+          "trap": false,
+          "ok": true,
+          "text": "Aurora Telecom completed a $150 million Series D funding round in 2024."
+        }
+      ]
+    }
+  ],
+  "cost_usd": 0.003255899999999999,
+  "with_examples": true
+}

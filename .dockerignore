@@ -1,0 +1,31 @@
+# ── Build context exclusions (applies to all stages) ──────────────────────────
+# Python
+.venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.mypy_cache/
+*.db
+data/
+output/
+
+# Node / Next (frontend stage runs `npm ci` + build fresh)
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/test-results/
+frontend/playwright-report/
+
+# Secrets — injected at runtime via docker-compose env_file, never baked in
+.env
+.env.local
+frontend/.env.local
+
+# Repo cruft not needed in the image
+.git/
+.gitignore
+graphify-out/
+evaluation/results_*.json
+docs/*.png
+*.md.bak

@@ -1,0 +1,114 @@
+{
+  "company": "Boeing",
+  "canonical_name": "THE BOEING COMPANY",
+  "is_public": true,
+  "data_sufficiency_tier": "RICH",
+  "signals_found": 12,
+  "source_types": ["sec_filing", "regulatory", "news_article", "court_record", "company_website"],
+  "research_date": "2026-06-25",
+  "signals": [
+    {
+      "id": 1,
+      "text": "DOJ criminal fraud charge (737 MAX crashes). Guilty plea agreed July 2024 ($487M), rejected Dec 2024. DOJ deal May 2025 ($1.1B fines). Case dismissed Nov 2025 despite judge skepticism. Court-ordered compliance monitor in place 2026.",
+      "source_url": "https://www.cnbc.com/2025/05/23/boeing-737-max-crashes-doj.html",
+      "source_type": "news_article",
+      "risk_category": "LEGAL",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": 2,
+      "text": "737 MAX crashes 2018-2019: 346 deaths (Lion Air, Ethiopian Airlines). Active civil litigation in 2026. Root cause: MCAS software defect plus FAA certification irregularities.",
+      "source_url": "https://en.wikipedia.org/wiki/Boeing_737_MAX_groundings",
+      "source_type": "news_article",
+      "risk_category": "LEGAL",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": 3,
+      "text": "Alaska Airlines door plug blowout January 2024: fuselage panel detached mid-flight on 737 MAX 9, injuring passengers. Triggered FAA production cap and criminal investigation reopening.",
+      "source_url": "https://newstalkkit.com/ixp/1130/p/boeing-news-timeline",
+      "source_type": "news_article",
+      "risk_category": "LEGAL",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": 4,
+      "text": "Whistleblower deaths: John Barnett (Boeing QA manager) died by suicide March 2024 during active deposition in retaliation lawsuit. Multiple other whistleblowers testified to Senate on retaliation.",
+      "source_url": "https://www.washingtonpost.com/business/interactive/2025/boeing-737-max-whistleblower-strike-2024/",
+      "source_type": "news_article",
+      "risk_category": "REPUTATIONAL",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": 5,
+      "text": "FAA $3.1M fine (2024) for hundreds of quality system violations at 737 Renton factory and Spirit AeroSystems Wichita factory. Total Boeing fines approximately $845M across 36 safety violations through 2024.",
+      "source_url": "https://aerospaceglobalnews.com/news/faa-boeing-3-1m-safety-fine/",
+      "source_type": "regulatory",
+      "risk_category": "REGULATORY",
+      "severity": "HIGH"
+    },
+    {
+      "id": 6,
+      "text": "Financial losses of $39B+ since 2019. Q3 2024: $6.2B quarterly loss (largest in company history). Long-term debt: $53B. $4B due 2025, $8B due 2026. Negative cash flow expected through 2025.",
+      "source_url": "https://www.ceotodaymagazine.com/2024/10/boeing-in-crisis-ceo-warns-of-fundamental-changes-amid-6-2-billion-losses/",
+      "source_type": "sec_filing",
+      "risk_category": "FINANCIAL",
+      "severity": "HIGH"
+    },
+    {
+      "id": 7,
+      "text": "Credit rating near junk: Moody's Baa3 on review for downgrade; S&P on verge of junk designation. First-time junk status would significantly raise borrowing costs.",
+      "source_url": "https://www.spokesman.com/stories/2024/sep/13/boeing-credit-rating-risks-a-cut-to-junk-status-as/",
+      "source_type": "news_article",
+      "risk_category": "FINANCIAL",
+      "severity": "HIGH"
+    },
+    {
+      "id": 8,
+      "text": "Defense division losses of approximately $5B in 2024 on 5 fixed-price government contracts (Starliner $2.9B total overrun, KC-46A tanker, T-7A Red Hawk, VC-25B Air Force One, MQ-25 drone). Structural cost problem on government contracts.",
+      "source_url": "https://breakingdefense.com/2025/01/boeing-to-log-1-7b-in-defense-program-losses-in-fourth-quarter/",
+      "source_type": "sec_filing",
+      "risk_category": "FINANCIAL",
+      "severity": "HIGH"
+    },
+    {
+      "id": 9,
+      "text": "2024 machinists strike: 33,000+ IAM workers, 7 weeks (Sept-Nov 2024). 94.6% rejected initial contract. Halted all 737, 777, and 767 production including KC-46 tanker.",
+      "source_url": "https://en.wikipedia.org/wiki/2024_Boeing_machinists'_strike",
+      "source_type": "news_article",
+      "risk_category": "OPERATIONAL",
+      "severity": "HIGH"
+    },
+    {
+      "id": 10,
+      "text": "Layoffs: October 2024, Boeing announced 10% workforce reduction (~17,000 employees) citing strike losses and financial pressure.",
+      "source_url": "https://www.npr.org/2024/10/11/nx-s1-5150759/boeing-layoffs-machinists-strike",
+      "source_type": "news_article",
+      "risk_category": "OPERATIONAL",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 11,
+      "text": "Safety culture failure: Boeing relied on FAA inspections rather than internal audits; whistleblower warnings ignored systematically; engineering culture displaced by finance-first management post-McDonnell Douglas merger.",
+      "source_url": "https://www.cpajournal.com/2025/08/12/the-story-of-boeings-failed-corporate-culture-3/",
+      "source_type": "news_article",
+      "risk_category": "REPUTATIONAL",
+      "severity": "HIGH"
+    },
+    {
+      "id": 12,
+      "text": "Starliner crew stranded: NASA astronauts left on ISS due to Starliner thruster failures and helium leaks; returned on SpaceX Crew Dragon in Feb 2025. Major reputational damage for Boeing's NASA relationship.",
+      "source_url": "https://spacepolicyonline.com/news/boeings-starliner-losses-reach-2-billion/",
+      "source_type": "news_article",
+      "risk_category": "REPUTATIONAL",
+      "severity": "HIGH"
+    }
+  ],
+  "not_findable_from_free_sources": [
+    "Internal safety audit reports (pre-crash)",
+    "Actual MCAS test data",
+    "Board meeting minutes on safety tradeoffs",
+    "Specific whistleblower complaint filing contents (PACER but paid)",
+    "Insurance exposure details"
+  ]
+}

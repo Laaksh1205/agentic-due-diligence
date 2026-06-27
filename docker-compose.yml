@@ -1,0 +1,57 @@
+# Agentic Due Diligence Platform — container orchestration (Task 5.4.2).
+#
+#   docker compose up --build            # the platform on http://localhost:8000
+#   docker compose --profile monitoring up   # + self-hosted Langfuse on :3000
+#
+# The app serves the FastAPI backend and the built web UI on a single origin
+# (:8000). Langfuse is optional — the project defaults to Langfuse Cloud (see the
+# LANGFUSE_BASE_URL in .env); the `monitoring` profile spins up a self-hosted
+# instance instead, on a shared network with the app.
+
+services:
+  app:
+    build: .
+    image: due-diligence
+    container_name: ddp-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data          # SQLite store + audit log persistence
+      - ./output:/app/output      # exported reports (JSON/PDF)
+      - hf-cache:/app/.cache/huggingface   # cache the embedding model download
+    restart: unless-stopped
+
+  # ── Optional self-hosted Langfuse (profile: monitoring) ──────────────────────
+  langfuse-db:
+    image: postgres:16-alpine
+    container_name: ddp-langfuse-db
+    profiles: ["monitoring"]
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse-db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  langfuse:
+    image: langfuse/langfuse:2
+    container_name: ddp-langfuse
+    profiles: ["monitoring"]
+    depends_on:
+      - langfuse-db
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: change-me-in-production
+      SALT: change-me-in-production
+      TELEMETRY_ENABLED: "false"
+    restart: unless-stopped
+
+volumes:
+  langfuse-db:
+  hf-cache:

@@ -1,0 +1,82 @@
+{
+  "company": "Chime",
+  "canonical_name": "CHIME FINANCIAL, INC.",
+  "is_public": false,
+  "data_sufficiency_tier": "ADEQUATE",
+  "signals_found": 8,
+  "source_types": ["regulatory", "sec_filing", "news_article", "class_action", "company_registry"],
+  "research_date": "2026-06-25",
+  "signals": [
+    {
+      "id": 1,
+      "text": "CFPB consent order May 2024: Chime ordered to pay $1.3M in consumer redress plus $3.25M civil money penalty for delaying refunds to customers after account closures — in some cases leaving people without access to their money for weeks.",
+      "source_url": "https://www.claimdepot.com/cases/chime-financial-lawsuit-claims-data-breach-left-users-locked-out-of-accounts",
+      "source_type": "regulatory",
+      "risk_category": "REGULATORY",
+      "severity": "HIGH"
+    },
+    {
+      "id": 2,
+      "text": "California DFPI consent order February 2024: Chime required to pay $2.5M penalty for mishandling consumer complaints during COVID-19 pandemic (2021).",
+      "source_url": "https://attorneysmag.com/chime-lawsuit/",
+      "source_type": "regulatory",
+      "risk_category": "REGULATORY",
+      "severity": "HIGH"
+    },
+    {
+      "id": 3,
+      "text": "2021 state regulatory settlements (California DFPI and Illinois DFPR): Chime's marketing implied it was a bank when it is not. Required to change marketing practices.",
+      "source_url": "https://en.wikipedia.org/wiki/Chime_(company)",
+      "source_type": "regulatory",
+      "risk_category": "REGULATORY",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 4,
+      "text": "Data breach April 2026: Team 313 (Iran-linked cybercriminal group) attacked Chime's servers. Approximately 20,000 users locked out of accounts during outage. Sensitive PII potentially exposed. Class action filed April 3, 2026 in N.D. California.",
+      "source_url": "https://www.classaction.org/news/chime-data-breach-lawsuit-says-april-2026-incident-could-have-been-prevented",
+      "source_type": "class_action",
+      "risk_category": "CYBERSECURITY",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": 5,
+      "text": "Account freeze class action (2020-2024): Chime abruptly closed thousands of accounts without adequate notice or timely return of balances. Settlement negotiations active as of early 2025. Estimated payouts $50-$500 per claimant.",
+      "source_url": "https://rightfuladvice.com/chime-settlement/",
+      "source_type": "class_action",
+      "risk_category": "LEGAL",
+      "severity": "HIGH"
+    },
+    {
+      "id": 6,
+      "text": "CFPB complaint volume: Chime described as 'one of the most complained-about fintech companies' in the CFPB database. BBB: 8,000+ complaints in 3 years despite A+ rating. Systemic customer service failures.",
+      "source_url": "https://businessofapps.com/data/chime-statistics",
+      "source_type": "news_article",
+      "risk_category": "REPUTATIONAL",
+      "severity": "HIGH"
+    },
+    {
+      "id": 7,
+      "text": "No banking charter: Chime is not a bank. Services depend entirely on partner banks (Bancorp Bank, Stride Bank). If either partner ends the relationship or faces its own regulatory action, Chime's entire product collapses. Structural dependency risk.",
+      "source_url": "https://capital.com/en-int/learn/ipo/chime-ipo",
+      "source_type": "news_article",
+      "risk_category": "OPERATIONAL",
+      "severity": "HIGH"
+    },
+    {
+      "id": 8,
+      "text": "IPO valuation decline: Chime went public June 2025 at $27/share (~$11.6B-$18.4B valuation) — significantly below $25B peak private valuation in 2021. Suggests investor skepticism about growth trajectory.",
+      "source_url": "https://fortune.com/2025/05/30/chime-ipo-circle-goldman-sachs-sequoia-capital-general-atlantic-crypto/",
+      "source_type": "sec_filing",
+      "risk_category": "FINANCIAL",
+      "severity": "MEDIUM"
+    }
+  ],
+  "not_findable_from_free_sources": [
+    "Pre-IPO financial statements",
+    "Precise number of affected accounts in CFPB action",
+    "Internal compliance program remediation steps",
+    "Bancorp/Stride contract terms and renewal dates",
+    "Revenue from non-deposit products"
+  ]
+}
