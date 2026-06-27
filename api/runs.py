@@ -51,6 +51,8 @@ class Run:
         self.company_name = company_name
         self.scope = scope
         self.auto_mode = auto_mode
+        self.registry_id: str = ""    # set when the user picked a candidate (§8c)
+        self.jurisdiction: str = ""
 
         self.status: str = "queued"
         self.progress_pct: int = 0
@@ -111,10 +113,14 @@ class RunManager:
         scope: str = "full",
         auto_mode: bool = False,
         hitl_timeout: Optional[int] = None,
+        registry_id: str = "",
+        jurisdiction: str = "",
     ) -> Run:
         """Create a run and schedule the pipeline as a background task."""
         run_id = str(uuid.uuid4())
         run = Run(run_id, company_name, scope, auto_mode)
+        run.registry_id = registry_id
+        run.jurisdiction = jurisdiction
         if hitl_timeout is not None:
             run.hitl_timeout = hitl_timeout
         self._runs[run_id] = run
@@ -158,6 +164,8 @@ class RunManager:
                 hitl_timeout=run.hitl_timeout,
                 run_id=run.run_id,
                 progress_cb=progress_cb,
+                registry_id=run.registry_id,
+                jurisdiction=run.jurisdiction,
             )
             self._finalize(run, final_state)
         except Exception as exc:  # pipeline already guards itself; this is a backstop

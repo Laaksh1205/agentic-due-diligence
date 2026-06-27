@@ -224,6 +224,38 @@ class TestEntityResolverUnit:
 
         assert entity.canonical_name == "Acme #0"
 
+    async def test_search_candidates_returns_display_views(self, resolver, tmp_path, monkeypatch):
+        """search_candidates returns compact, display-ready dicts (picker §8c)."""
+        monkeypatch.setattr("src.config.settings.use_cache", False)
+        results = [
+            {"id": "1", "legal_name": "Formlabs Inc", "jurisdiction_code": "us-ma",
+             "status": "active", "company_type": "corporation"},
+            {"id": "2", "legal_name": "Formlabs KK", "jurisdiction_code": "jp", "status": "active"},
+        ]
+        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(results, False)):
+            cands = await resolver.search_candidates("Formlabs")
+
+        assert [c["registry_id"] for c in cands] == ["1", "2"]
+        assert cands[0]["name"] == "Formlabs Inc" and cands[0]["jurisdiction"] == "us-ma"
+        assert cands[0]["status"] == "active"
+        assert cands[1]["jurisdiction"] == "jp"
+
+    async def test_resolve_by_registry_id_selects_exact(self, resolver, tmp_path, monkeypatch):
+        """resolve(registry_id=...) picks that exact candidate, not the top-ranked."""
+        monkeypatch.setattr("src.config.settings.database_path", str(tmp_path / "test.db"))
+        monkeypatch.setattr("src.config.settings.use_cache", False)
+        # Top-ranked is the JP entity; the user picked the US one (id=2).
+        results = [
+            {"id": "1", "legal_name": "Formlabs KK", "jurisdiction_code": "jp"},
+            {"id": "2", "legal_name": "Formlabs Inc", "jurisdiction_code": "us-ma"},
+        ]
+        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(results, False)), \
+             patch("src.resolution.entity_resolver._edgar_lookup", new_callable=AsyncMock, return_value={}):
+            entity = await resolver.resolve("Formlabs", registry_id="2")
+
+        assert entity.canonical_name == "Formlabs Inc"
+        assert entity.registry_lookup_id == "2"
+
 
 # ── Integration tests (live API — no VPN needed) ──────────────────────────────
 

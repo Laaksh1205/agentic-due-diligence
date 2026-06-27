@@ -76,7 +76,7 @@ def _make_fake_pipeline(*, report, review_signals=None):
 
     async def fake_run_pipeline(
         entity_name, *, scope="full", auto_mode=False,
-        hitl_timeout=None, run_id=None, progress_cb=None,
+        hitl_timeout=None, run_id=None, progress_cb=None, **kwargs,
     ):
         from src.agents import hitl
         from src.storage.database import save_report

@@ -3,6 +3,7 @@ import { expect, test, type Route } from "@playwright/test";
 import {
   forcePolling,
   mockAssess,
+  mockResolve,
   reportFixture,
   reviewSignalFixture,
   RUN_ID,
@@ -20,6 +21,7 @@ function fulfillJson(route: Route, body: unknown, status = 200) {
 // 4.3.1 — Full flow: search → confirm → progress → report → export.
 test("full journey: search to report with live WebSocket progress", async ({ page }, testInfo) => {
   await mockAssess(page);
+  await mockResolve(page);
   await page.route(STATUS_RE, (r) => fulfillJson(r, statusPayload()));
   await page.route(REPORT_RE, (r) => fulfillJson(r, reportFixture()));
 
@@ -129,6 +131,7 @@ test("error state: failed run shows graceful message", async ({ page }) => {
 // 4.3.4 — Mobile responsiveness: landing usable and submittable at 360px.
 test("landing page is usable on a narrow viewport", async ({ page }) => {
   await mockAssess(page);
+  await mockResolve(page);
   await page.goto("/");
 
   const input = page.getByPlaceholder(/Boeing, Stripe/i);

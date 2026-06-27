@@ -139,6 +139,26 @@ export async function mockAssess(page: Page) {
   );
 }
 
+/** Mock POST /api/resolve → the entity picker candidate list (design §8c). */
+export async function mockResolve(page: Page, candidates?: object[]) {
+  const body = {
+    candidates: candidates ?? [
+      {
+        registry_id: "rl-acme-1",
+        name: "ACME CORPORATION",
+        jurisdiction: "us-de",
+        status: "active",
+        company_type: "corporation",
+        address: "Delaware, USA",
+        is_public: true,
+      },
+    ],
+  };
+  await page.route("**/api/resolve", (route: Route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) }),
+  );
+}
+
 /** Force the WebSocket to close so the UI falls back to polling (deterministic). */
 export async function forcePolling(page: Page) {
   await page.routeWebSocket(/\/ws\//, (ws) => ws.close());

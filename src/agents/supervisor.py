@@ -45,6 +45,8 @@ class AgentState(TypedDict):
     auto_mode: bool            # True → skip HITL
     hitl_timeout: int          # seconds before HITL review auto-proceeds (PENDING_REVIEW)
     start_time: float          # time.monotonic() at pipeline start
+    registry_id: str           # chosen registry candidate id (§8c picker); "" = autonomous
+    jurisdiction: str          # optional registry jurisdiction filter; "" = any
 
     # Stage outputs
     resolved_entity: Optional[ResolvedEntity]
@@ -95,7 +97,11 @@ async def _node_entity_resolution(state: AgentState) -> dict:
     logger.info("[entity_resolution] Resolving '%s'", state["entity_name"])
     try:
         resolver = EntityResolver()
-        entity = await resolver.resolve(state["entity_name"])
+        entity = await resolver.resolve(
+            state["entity_name"],
+            registry_id=state.get("registry_id", "") or "",
+            jurisdiction=state.get("jurisdiction", "") or "",
+        )
         logger.info("[entity_resolution] → %s (public=%s)", entity.canonical_name, entity.is_public)
         await audit("entity_resolved", entity.canonical_name, run_id=state["run_id"])
         return {"resolved_entity": entity}
@@ -323,6 +329,8 @@ async def run_pipeline(
     hitl_timeout: Optional[int] = None,
     run_id: Optional[str] = None,
     progress_cb: Optional[Callable[[str], None]] = None,
+    registry_id: str = "",
+    jurisdiction: str = "",
 ) -> AgentState:
     """Run the full due-diligence pipeline and return the final AgentState.
 
@@ -344,6 +352,8 @@ async def run_pipeline(
         "auto_mode": auto_mode,
         "hitl_timeout": hitl_timeout if hitl_timeout is not None else settings.hitl_timeout_seconds,
         "start_time": start_time,
+        "registry_id": registry_id,
+        "jurisdiction": jurisdiction,
         "resolved_entity": None,
         "documents": [],
         "data_sufficiency": None,

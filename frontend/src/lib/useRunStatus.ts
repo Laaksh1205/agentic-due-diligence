@@ -16,6 +16,7 @@ export function useRunStatus(runId: string) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    if (!runId) return; // id is read from the URL after mount; wait for it
     let cancelled = false;
     let ws: WebSocket | null = null;
 

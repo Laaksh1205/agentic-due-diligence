@@ -136,12 +136,21 @@ async def _set_cached(key: str, entity: ResolvedEntity) -> None:
 
 # ── Registry Lookup ───────────────────────────────────────────────────────────
 
-async def _rl_search(client: httpx.AsyncClient, query: str) -> tuple[list[dict], bool]:
-    """Query Registry Lookup. Returns (results, is_blocked)."""
+async def _rl_search(
+    client: httpx.AsyncClient, query: str, jurisdiction: str = ""
+) -> tuple[list[dict], bool]:
+    """Query Registry Lookup. Returns (results, is_blocked).
+
+    ``jurisdiction`` (e.g. 'us', 'gb', 'us-de') narrows the search server-side —
+    the single most effective disambiguator for common names.
+    """
+    params: dict = {"q": query, "limit": 10 if jurisdiction else 5}
+    if jurisdiction:
+        params["jurisdiction_code"] = jurisdiction
     try:
         r = await client.get(
             "https://api.registry-lookup.com/v1/companies/search",
-            params={"q": query, "limit": 5},
+            params=params,
             headers={"X-API-Key": settings.registry_lookup_api_key, "Accept": "application/json"},
             timeout=10,
         )
@@ -196,6 +205,30 @@ def _parse_rl_result(result: dict, raw_input: str) -> ResolvedEntity:
         registry_lookup_id=str(result.get("id", "")) or None,
         industry=result.get("industry") or result.get("sic_description"),
     )
+
+
+def _candidate_view(result: dict, raw_input: str) -> dict:
+    """Compact, display-ready candidate for the interactive picker (design §8c)."""
+    parsed = _parse_rl_result(result, raw_input)
+    return {
+        "registry_id": parsed.registry_lookup_id or "",
+        "name": parsed.canonical_name,
+        "jurisdiction": parsed.jurisdiction or "",
+        "status": (
+            result.get("status")
+            or result.get("company_status")
+            or result.get("current_status")
+            or ""
+        ),
+        "company_type": result.get("company_type") or result.get("type") or "",
+        "address": (
+            result.get("registered_address")
+            or result.get("address")
+            or result.get("registered_office_address")
+            or ""
+        ),
+        "is_public": parsed.is_public,
+    }
 
 
 # ── SEC EDGAR ─────────────────────────────────────────────────────────────────
@@ -297,16 +330,24 @@ class EntityResolver:
         entity = await resolver.resolve("Tesla Inc")
     """
 
-    async def resolve(self, raw_input: str) -> ResolvedEntity:
+    async def resolve(
+        self,
+        raw_input: str,
+        *,
+        registry_id: str = "",
+        jurisdiction: str = "",
+    ) -> ResolvedEntity:
         """Resolve *raw_input* to a ``ResolvedEntity``.
+
+        When ``registry_id`` is given (the user picked a candidate via the
+        interactive picker — design §8c), the exact matching registry entry is
+        selected instead of auto-ranking. ``jurisdiction`` narrows the registry
+        search server-side. Both default to "" (autonomous best-match path).
 
         Raises:
             EntityNotFoundError: if no entity found from any source.
-            EntityAmbiguityError: if >3 Registry Lookup matches returned;
-                                  inspect ``.candidates`` and call again with
-                                  the chosen canonical name.
         """
-        key = _cache_key(raw_input)
+        key = _cache_key(f"{raw_input}|{registry_id}|{jurisdiction}")
 
         if settings.use_cache:
             cached = await _get_cached(key)
@@ -315,17 +356,45 @@ class EntityResolver:
                 return cached
 
         async with httpx.AsyncClient() as client:
-            entity = await self._resolve_uncached(client, raw_input)
+            entity = await self._resolve_uncached(
+                client, raw_input, jurisdiction=jurisdiction, registry_id=registry_id
+            )
 
         if settings.use_cache:
             await _set_cached(key, entity)
 
         return entity
 
+    async def search_candidates(
+        self, raw_input: str, jurisdiction: str = "", limit: int = 5
+    ) -> list[dict]:
+        """Return up to ``limit`` registry candidates for the picker (design §8c).
+
+        Lightweight: registry metadata only, no Companies House / EDGAR
+        enrichment. Returns [] when Registry Lookup is unavailable or finds
+        nothing — the caller then falls back to the autonomous resolve path.
+        """
+        async with httpx.AsyncClient() as client:
+            results, _blocked = await _rl_search(client, raw_input, jurisdiction)
+        return [_candidate_view(r, raw_input) for r in results[:limit]]
+
     async def _resolve_uncached(
-        self, client: httpx.AsyncClient, raw_input: str
+        self,
+        client: httpx.AsyncClient,
+        raw_input: str,
+        jurisdiction: str = "",
+        registry_id: str = "",
     ) -> ResolvedEntity:
-        rl_results, rl_blocked = await _rl_search(client, raw_input)
+        rl_results, rl_blocked = await _rl_search(client, raw_input, jurisdiction)
+
+        # If the user picked a specific candidate, select it exactly by id.
+        if registry_id and rl_results:
+            chosen = next(
+                (r for r in rl_results if str(r.get("id", "")) == registry_id), None
+            )
+            if chosen is not None:
+                entity = _parse_rl_result(chosen, raw_input)
+                return await self._enrich_entity(client, entity, raw_input)
 
         # Ambiguity: >3 matches from Registry Lookup. Per design §8c the ideal UX is
         # an interactive picker, but the autonomous pipeline can't pause for it, so
@@ -355,21 +424,7 @@ class EntityResolver:
                 aliases=_generate_aliases(canonical, raw_input, []),
             )
 
-        # UK enrichment via Companies House
-        if entity.jurisdiction and "gb" in entity.jurisdiction:
-            entity = await self._enrich_companies_house(client, entity, raw_input)
-
-        # US / unknown: try SEC EDGAR for public company enrichment
-        if not entity.sec_cik and (entity.is_public or not entity.registry_lookup_id):
-            edgar = await _edgar_lookup(client, entity.canonical_name)
-            if edgar.get("cik"):
-                edg_canonical = edgar.get("canonical_name") or entity.canonical_name
-                entity = entity.model_copy(update={
-                    "canonical_name": edg_canonical,
-                    "aliases": _generate_aliases(edg_canonical, raw_input, edgar.get("tickers", [])),
-                    "sec_cik": edgar["cik"],
-                    "is_public": True,
-                })
+        entity = await self._enrich_entity(client, entity, raw_input)
 
         # Nothing found from any authoritative source
         if not rl_results and not entity.sec_cik:
@@ -386,6 +441,27 @@ class EntityResolver:
                 f"No entity found for '{raw_input}' in Registry Lookup or SEC EDGAR."
             )
 
+        return entity
+
+    async def _enrich_entity(
+        self, client: httpx.AsyncClient, entity: ResolvedEntity, raw_input: str
+    ) -> ResolvedEntity:
+        """Shared enrichment: Companies House (UK) + SEC EDGAR (US public)."""
+        # UK enrichment via Companies House
+        if entity.jurisdiction and "gb" in entity.jurisdiction:
+            entity = await self._enrich_companies_house(client, entity, raw_input)
+
+        # US / unknown: try SEC EDGAR for public company enrichment
+        if not entity.sec_cik and (entity.is_public or not entity.registry_lookup_id):
+            edgar = await _edgar_lookup(client, entity.canonical_name)
+            if edgar.get("cik"):
+                edg_canonical = edgar.get("canonical_name") or entity.canonical_name
+                entity = entity.model_copy(update={
+                    "canonical_name": edg_canonical,
+                    "aliases": _generate_aliases(edg_canonical, raw_input, edgar.get("tickers", [])),
+                    "sec_cik": edgar["cik"],
+                    "is_public": True,
+                })
         return entity
 
     async def _enrich_companies_house(

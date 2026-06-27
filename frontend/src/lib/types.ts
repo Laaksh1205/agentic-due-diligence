@@ -2,6 +2,17 @@
 
 export type Scope = "full" | "financial" | "compliance";
 
+// One registry match shown in the entity picker (design §8c).
+export interface Candidate {
+  registry_id: string;
+  name: string;
+  jurisdiction: string;
+  status: string;
+  company_type: string;
+  address: string;
+  is_public: boolean;
+}
+
 export type RunStatus =
   | "queued"
   | "researching"

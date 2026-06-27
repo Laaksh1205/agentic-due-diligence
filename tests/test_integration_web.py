@@ -59,13 +59,49 @@ def _wait(client, run_id, until, tries=60):
     raise AssertionError(f"condition not met; last={body}")
 
 
+# ── Entity picker — /api/resolve returns candidates (design §8c) ─────────────
+
+def test_resolve_endpoint_returns_candidates(monkeypatch):
+    import src.resolution.entity_resolver as er
+
+    async def fake_search(self, name, jurisdiction="", limit=5):
+        assert name == "Formlabs"
+        return [{
+            "registry_id": "2", "name": "Formlabs Inc", "jurisdiction": "us-ma",
+            "status": "active", "company_type": "corporation", "address": "MA, USA",
+            "is_public": False,
+        }]
+
+    monkeypatch.setattr(er.EntityResolver, "search_candidates", fake_search)
+    with _client() as client:
+        r = client.post("/api/resolve", json={"company_name": "Formlabs"})
+        assert r.status_code == 200
+        cands = r.json()["candidates"]
+        assert len(cands) == 1
+        assert cands[0]["name"] == "Formlabs Inc" and cands[0]["registry_id"] == "2"
+
+
+def test_resolve_endpoint_empty_on_error(monkeypatch):
+    """Resolution failure must not break the UI — endpoint returns []."""
+    import src.resolution.entity_resolver as er
+
+    async def boom(self, name, jurisdiction="", limit=5):
+        raise RuntimeError("registry down")
+
+    monkeypatch.setattr(er.EntityResolver, "search_candidates", boom)
+    with _client() as client:
+        r = client.post("/api/resolve", json={"company_name": "Anything"})
+        assert r.status_code == 200
+        assert r.json()["candidates"] == []
+
+
 # ── 4.3.1 — Full journey through the API (assess → status → report → export) ──
 
 def test_full_journey_assess_to_export(monkeypatch):
     import src.agents.supervisor as sup
 
     async def fake_pipeline(entity_name, *, scope="full", auto_mode=False,
-                            hitl_timeout=None, run_id=None, progress_cb=None):
+                            hitl_timeout=None, run_id=None, progress_cb=None, **kwargs):
         from src.storage.database import save_report
         for node in ("entity_resolution", "research", "extraction", "risk_analysis",
                      "hitl_gate", "synthesis", "presentation"):
@@ -95,7 +131,7 @@ def test_pipeline_crash_surfaces_as_error_status(monkeypatch):
     import src.agents.supervisor as sup
 
     async def boom(entity_name, *, scope="full", auto_mode=False,
-                   hitl_timeout=None, run_id=None, progress_cb=None):
+                   hitl_timeout=None, run_id=None, progress_cb=None, **kwargs):
         raise RuntimeError("Companies House API unreachable (source down)")
 
     monkeypatch.setattr(sup, "run_pipeline", boom)
@@ -113,7 +149,7 @@ def test_empty_results_complete_without_report(monkeypatch):
     import src.agents.supervisor as sup
 
     async def empty(entity_name, *, scope="full", auto_mode=False,
-                    hitl_timeout=None, run_id=None, progress_cb=None):
+                    hitl_timeout=None, run_id=None, progress_cb=None, **kwargs):
         if progress_cb:
             progress_cb("entity_resolution")
         return {
@@ -138,7 +174,7 @@ def test_report_not_ready_returns_409(monkeypatch):
     import src.agents.supervisor as sup
 
     async def slow(entity_name, *, scope="full", auto_mode=False,
-                   hitl_timeout=None, run_id=None, progress_cb=None):
+                   hitl_timeout=None, run_id=None, progress_cb=None, **kwargs):
         if progress_cb:
             progress_cb("research")
         await asyncio.sleep(0.5)
@@ -165,7 +201,7 @@ def test_review_on_non_reviewing_run_is_rejected(monkeypatch):
     import src.agents.supervisor as sup
 
     async def fast(entity_name, *, scope="full", auto_mode=False,
-                   hitl_timeout=None, run_id=None, progress_cb=None):
+                   hitl_timeout=None, run_id=None, progress_cb=None, **kwargs):
         return {"report": _report(), "scored_signals": [], "errors": []}
 
     monkeypatch.setattr(sup, "run_pipeline", fast)

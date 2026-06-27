@@ -2,6 +2,7 @@
 // /api/* which the Next dev server proxies to the backend (see next.config.mjs).
 
 import type {
+  Candidate,
   DueDiligenceReport,
   RiskSignal,
   RunHistoryItem,
@@ -29,6 +30,8 @@ export interface AssessInput {
   scope: Scope;
   auto_mode: boolean;
   hitl_timeout?: number;
+  registry_id?: string; // set when a candidate was chosen in the picker (§8c)
+  jurisdiction?: string;
 }
 
 export async function startAssessment(input: AssessInput): Promise<{ run_id: string }> {
@@ -38,6 +41,21 @@ export async function startAssessment(input: AssessInput): Promise<{ run_id: str
     body: JSON.stringify(input),
   });
   return jsonOrThrow(res);
+}
+
+/** Fetch up to 5 registry candidates for the entity picker (§8c). */
+export async function resolveCandidates(
+  companyName: string,
+  jurisdiction = "",
+): Promise<Candidate[]> {
+  const data = await jsonOrThrow<{ candidates: Candidate[] }>(
+    await fetch("/api/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company_name: companyName, jurisdiction }),
+    }),
+  );
+  return data.candidates;
 }
 
 export async function getRunStatus(runId: string): Promise<RunStatusPayload> {

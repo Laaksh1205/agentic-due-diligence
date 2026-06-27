@@ -77,10 +77,32 @@ class AssessRequest(BaseModel):
     scope: str = Field("full", pattern="^(full|financial|compliance)$")
     auto_mode: bool = False
     hitl_timeout: Optional[int] = Field(None, ge=1)
+    # Set when the user picked a specific candidate in the entity picker (§8c).
+    registry_id: str = ""
+    jurisdiction: str = ""
 
 
 class AssessResponse(BaseModel):
     run_id: str
+
+
+class ResolveRequest(BaseModel):
+    company_name: str = Field(..., min_length=1)
+    jurisdiction: str = ""
+
+
+class Candidate(BaseModel):
+    registry_id: str = ""
+    name: str
+    jurisdiction: str = ""
+    status: str = ""
+    company_type: str = ""
+    address: str = ""
+    is_public: bool = False
+
+
+class ResolveResponse(BaseModel):
+    candidates: list[Candidate]
 
 
 class ReviewRequest(BaseModel):
@@ -111,6 +133,24 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+@app.post("/api/resolve", response_model=ResolveResponse)
+async def resolve_entity(req: ResolveRequest) -> ResolveResponse:
+    """Return up to 5 registry candidates for the entity picker (design §8c).
+
+    No pipeline run — just a registry search. Returns an empty list when
+    Registry Lookup is unavailable or finds nothing, so the UI can fall back to
+    submitting the raw name (autonomous best-match resolution).
+    """
+    from src.resolution.entity_resolver import EntityResolver
+
+    try:
+        cands = await EntityResolver().search_candidates(req.company_name, req.jurisdiction)
+    except Exception as exc:  # never let resolution errors break the UI
+        logger.warning("resolve failed for '%s': %s", req.company_name, exc)
+        cands = []
+    return ResolveResponse(candidates=[Candidate(**c) for c in cands])
+
+
 @app.post("/api/assess", response_model=AssessResponse, status_code=202)
 async def assess(req: AssessRequest) -> AssessResponse:
     """Kick off the pipeline in a background task and return its run_id (4.1.2)."""
@@ -119,6 +159,8 @@ async def assess(req: AssessRequest) -> AssessResponse:
         scope=req.scope,
         auto_mode=req.auto_mode,
         hitl_timeout=req.hitl_timeout,
+        registry_id=req.registry_id,
+        jurisdiction=req.jurisdiction,
     )
     return AssessResponse(run_id=run.run_id)
 
