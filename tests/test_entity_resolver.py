@@ -17,7 +17,6 @@ import pytest
 
 from src.models.entities import ResolvedEntity
 from src.resolution.entity_resolver import (
-    EntityAmbiguityError,
     EntityNotFoundError,
     EntityResolver,
     _cache_key,
@@ -164,17 +163,16 @@ class TestEntityResolverUnit:
         assert "REVOLUT" in entity.canonical_name.upper()
 
     async def test_resolve_ambiguous_name(self, resolver, tmp_path, monkeypatch):
-        """4 RL results → EntityAmbiguityError with 3 candidates."""
+        """>3 RL matches → auto-select the top-ranked match (never dead-end)."""
         monkeypatch.setattr("src.config.settings.database_path", str(tmp_path / "test.db"))
         monkeypatch.setattr("src.config.settings.use_cache", False)
 
-        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(MOCK_AMBIGUOUS_RL, False)), \
-             pytest.raises(EntityAmbiguityError) as exc_info:
-            await resolver.resolve("Mercury Corp")
+        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(MOCK_AMBIGUOUS_RL, False)):
+            entity = await resolver.resolve("Mercury Corp")
 
-        err = exc_info.value
-        assert len(err.candidates) == 3
-        assert all(isinstance(c, ResolvedEntity) for c in err.candidates)
+        # The top match is selected; the pipeline proceeds instead of erroring.
+        assert isinstance(entity, ResolvedEntity)
+        assert entity.canonical_name == "Mercury Corp A"
 
     async def test_resolve_not_found(self, resolver, tmp_path, monkeypatch):
         """RL empty, EDGAR empty → EntityNotFoundError."""
@@ -215,17 +213,16 @@ class TestEntityResolverUnit:
         assert entity.is_public is True
         assert entity.sec_cik == "0001318605"
 
-    async def test_ambiguity_returns_exactly_3_candidates(self, resolver, tmp_path, monkeypatch):
-        """Always cap ambiguity candidates at 3 even when more results exist."""
+    async def test_ambiguity_selects_first_of_many(self, resolver, tmp_path, monkeypatch):
+        """Many matches → auto-select the first-ranked, never raise."""
         monkeypatch.setattr("src.config.settings.database_path", str(tmp_path / "test.db"))
         monkeypatch.setattr("src.config.settings.use_cache", False)
 
         many = [{"id": str(i), "legal_name": f"Acme #{i}", "jurisdiction_code": "us-de"} for i in range(10)]
-        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(many, False)), \
-             pytest.raises(EntityAmbiguityError) as exc_info:
-            await resolver.resolve("Acme")
+        with patch("src.resolution.entity_resolver._rl_search", new_callable=AsyncMock, return_value=(many, False)):
+            entity = await resolver.resolve("Acme")
 
-        assert len(exc_info.value.candidates) == 3
+        assert entity.canonical_name == "Acme #0"
 
 
 # ── Integration tests (live API — no VPN needed) ──────────────────────────────

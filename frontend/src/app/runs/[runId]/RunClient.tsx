@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 
@@ -16,11 +15,16 @@ import type { DueDiligenceReport } from "@/lib/types";
 import { useRunStatus } from "@/lib/useRunStatus";
 
 export function RunClient() {
-  // Read the run id from the live URL via the client router. This keeps the page
-  // valid under static export (`output: 'export'`), where one exported HTML shell
-  // is served for any /runs/<id> path by the FastAPI backend.
-  const params = useParams<{ runId: string }>();
-  const runId = params.runId;
+  // Read the run id straight from the URL path. Under static export
+  // (`output: 'export'`) the single exported shell is built for the placeholder
+  // id "live" and served by the backend for every /runs/<id> path — so
+  // `useParams()` returns the build-time "live", not the real id. Parsing
+  // window.location.pathname is the only reliable source of the actual run id.
+  const [runId] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const m = window.location.pathname.match(/\/runs\/([^/]+)\/?$/);
+    return m ? decodeURIComponent(m[1]) : "";
+  });
   const { status, connected } = useRunStatus(runId);
   const [report, setReport] = useState<DueDiligenceReport | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);

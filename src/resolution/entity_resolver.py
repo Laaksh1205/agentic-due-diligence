@@ -327,10 +327,22 @@ class EntityResolver:
     ) -> ResolvedEntity:
         rl_results, rl_blocked = await _rl_search(client, raw_input)
 
-        # Ambiguity: >3 matches from Registry Lookup
+        # Ambiguity: >3 matches from Registry Lookup. Per design §8c the ideal UX is
+        # an interactive picker, but the autonomous pipeline can't pause for it, so
+        # we select the top-ranked match (consistent with the 1–3 match path below)
+        # and log the alternatives — the choice is transparent (the resolved
+        # canonical name is shown in the report header), not silent, and the run
+        # never dead-ends on a common name.
         if len(rl_results) > 3:
-            raise EntityAmbiguityError(
-                [_parse_rl_result(r, raw_input) for r in rl_results[:3]]
+            logger.info(
+                "Ambiguous '%s': %d registry matches; auto-selecting top match '%s'. "
+                "Other candidates: %s",
+                raw_input,
+                len(rl_results),
+                _parse_rl_result(rl_results[0], raw_input).canonical_name,
+                ", ".join(
+                    _parse_rl_result(r, raw_input).canonical_name for r in rl_results[1:4]
+                ),
             )
 
         if rl_results:
