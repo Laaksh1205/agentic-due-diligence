@@ -15,6 +15,14 @@ license: mit
 
 # Agentic Due Diligence Intelligence Platform
 
+### 🔗 Live demo — **[lp012-due-diligence-platform.hf.space](https://lp012-due-diligence-platform.hf.space)**
+
+[![Live Demo](https://img.shields.io/badge/%F0%9F%A4%97%20Live%20Demo-Hugging%20Face%20Space-blue)](https://lp012-due-diligence-platform.hf.space)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+> Hosted on the Hugging Face free tier (US region) — if it's been idle it sleeps,
+> so give it ~30–60s to wake on first load.
+
 > Autonomous multi-agent system that researches a company across **521M+ global
 > entities**, extracts **quote-verified** risk signals with an LLM, and synthesizes
 > a **citation-grounded** due-diligence report — in **~5 minutes for ~1¢**, not
