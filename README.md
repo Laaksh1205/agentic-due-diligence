@@ -57,6 +57,14 @@ Diagram source: [`docs/architecture.mmd`](docs/architecture.mmd).
 - **Zero unverified claims** — every extracted signal carries a verbatim
   `source_snippet` that is fuzzy-matched back to the source text (`rapidfuzz`);
   anything below threshold is rejected and logged.
+- **Source-credibility weighting & severity gate** — quote-anchoring proves a claim
+  is *on the page*; this proves the *page is trustworthy*. Every signal is graded
+  by source trust (PRIMARY registries/SEC/court · ESTABLISHED reputable outlets ·
+  GENERAL · LOW PR-wires/blogs/UGC) and independent cross-source corroboration. A
+  HIGH/CRITICAL finding resting on a single low-credibility, uncorroborated source
+  is capped to MEDIUM, flagged `unverified`, and routed to human review — so
+  planted/fake content can't drive a headline risk. Fully deterministic: no extra
+  LLM calls, latency, or cost ([`source_credibility.py`](src/analysis/source_credibility.py)).
 - **Citation-grounded synthesis** — report sentences reference `[Signal-N]` IDs;
   orphan citations are detected and flagged (faithfulness floor).
 - **RAG-grounded severity** — severity is scored against a FAISS-indexed
@@ -143,8 +151,10 @@ spins up a self-hosted instance on a shared network instead.
    SPARSE from doc count × source-type diversity.
 4. **Extraction** — per-document structured LLM extraction into `RiskSignal`
    objects (≤ 7/doc), each quote-anchor verified; temporal decay applied.
-5. **Risk analysis** — dedupe → RAG-retrieve rubric context → LLM severity score →
-   contradiction detection → corroboration boost.
+5. **Risk analysis** — dedupe (counting independent source domains) → source-
+   credibility weighting → RAG-retrieve rubric context → LLM severity score →
+   contradiction detection → credibility severity-gate (cap + flag single
+   low-trust, uncorroborated HIGH/CRITICAL findings).
 6. **HITL gate** — interrupt on CRITICAL/low-confidence (auto mode tags
    `PENDING_REVIEW`).
 7. **Synthesis** — per-category sections + executive summary with inline
@@ -262,6 +272,22 @@ inspectable state machine that makes the output trustworthy.
 fabricated findings. Requiring a verbatim source snippet that must fuzzy-match
 the fetched text turns "trust the model" into "verify against the source," and
 makes the rejection rate a measurable quality signal.
+
+**How do you handle fake or low-credibility sources?** Quote-anchoring only proves
+a claim is *on the page* — not that the *page* is truthful, so a planted article
+would still pass it. A deterministic source-credibility layer closes that gap: each
+signal is graded into a trust tier (PRIMARY registries/SEC/court · ESTABLISHED
+reputable outlets · GENERAL · LOW PR-wires/blogs/UGC) and corroboration is counted
+across *independent registrable domains* (five mirrors of one wire story collapse to
+one). Trust haircuts the confidence score (which flows into category scores), and a
+hard gate **caps + flags** any HIGH/CRITICAL finding that rests on a single
+low-credibility, uncorroborated source — capping it to MEDIUM, marking it
+`unverified`, and routing it to human review. It is never dropped, so recall is
+preserved, and a single PRIMARY source (or ≥2 independent reputable domains) is left
+untouched. On a live Boeing run this graded 80 signals PRIMARY/GENERAL/LOW/ESTABLISHED
+and flagged 19 single-low-trust claims for review, with **no change to recall or
+precision** and **zero added LLM cost** (it is pure tier lookup + the existing dedup
+embeddings).
 
 ---
 
