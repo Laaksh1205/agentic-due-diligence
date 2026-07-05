@@ -23,10 +23,10 @@ license: mit
 > Hosted on the Hugging Face free tier (US region) — if it's been idle it sleeps,
 > so give it ~30–60s to wake on first load.
 
-> Autonomous multi-agent system that researches a company across **521M+ global
-> entities**, extracts **quote-verified** risk signals with an LLM, and synthesizes
-> a **citation-grounded** due-diligence report — in **~3–4 minutes for 1–2¢**, not
-> weeks of analyst time.
+> Autonomous multi-agent system that researches a company across registries
+> covering **521M+ global entities**, extracts **quote-verified** risk signals
+> with an LLM, and synthesizes a **citation-grounded** due-diligence report —
+> in **~1–2 minutes for ~2¢**, not weeks of analyst time.
 
 Point it at any company name. A LangGraph supervisor orchestrates eight pipeline
 stages that resolve the entity, gather evidence from custom MCP data sources
@@ -246,7 +246,7 @@ Full write-up: [`evaluation/system_vs_human.md`](evaluation/system_vs_human.md).
 Flash rates (~⅓ low). The estimator now carries Flash-Lite's real pricing
 ($0.10 in / $0.40 out per 1M tokens); the figures above are true-priced.
 
-At 1–2¢ and ~3 min per company, the platform is ~3 orders of magnitude cheaper
+At ~2¢ and ~1–2 min per company, the platform is ~3 orders of magnitude cheaper
 than manual research while preserving an auditable evidence trail.
 
 ---
