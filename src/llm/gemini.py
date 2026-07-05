@@ -16,6 +16,7 @@ T = TypeVar("T", bound=BaseModel)
 
 # Per-token pricing in USD (as of June 2025, standard tier)
 _PRICING: dict[str, dict[str, float]] = {
+    "gemini-2.5-flash-lite": {"input": 0.10 / 1_000_000, "output": 0.40 / 1_000_000},
     "gemini-2.5-flash": {"input": 0.075 / 1_000_000, "output": 0.30 / 1_000_000},
     "gemini-2.5-pro": {"input": 1.25 / 1_000_000, "output": 10.00 / 1_000_000},
 }

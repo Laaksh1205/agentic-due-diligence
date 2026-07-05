@@ -130,11 +130,19 @@ async def cli_collect_verdicts(
         fut: asyncio.Future = loop.create_future()
 
         def worker() -> None:
+            def _deliver(cb: Callable[[], object]) -> None:
+                # The blocking input() may return after a review timeout has
+                # ended the run and closed the loop — drop the result then.
+                try:
+                    loop.call_soon_threadsafe(cb)
+                except RuntimeError:
+                    pass
+
             try:
                 value = input_fn(prompt)
-                loop.call_soon_threadsafe(lambda: fut.done() or fut.set_result(value))
+                _deliver(lambda: fut.done() or fut.set_result(value))
             except BaseException as exc:  # EOFError, KeyboardInterrupt, OSError (closed stdin)
-                loop.call_soon_threadsafe(lambda: fut.done() or fut.set_exception(exc))
+                _deliver(lambda: fut.done() or fut.set_exception(exc))
 
         threading.Thread(target=worker, daemon=True).start()
         return await fut

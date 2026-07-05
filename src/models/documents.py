@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -18,6 +18,6 @@ class RawDocument(BaseModel):
     source_url: str
     source_type: SourceType
     raw_text: str
-    fetch_timestamp: datetime = Field(default_factory=datetime.utcnow)
+    fetch_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict[str, Any] = {}
     entity_name: Optional[str] = None

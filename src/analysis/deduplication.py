@@ -114,7 +114,7 @@ def deduplicate(
     for i in range(n):
         clusters[uf.find(i)].append(i)
 
-    result: list[RiskSignal] = []
+    result: list[tuple[int, RiskSignal]] = []
     for idxs in clusters.values():
         # Most authoritative source is primary (credibility, then confidence);
         # ties resolved by original order (stable).

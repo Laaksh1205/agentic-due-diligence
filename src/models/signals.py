@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -55,7 +55,7 @@ class RiskSignal(BaseModel):
     source_url: str
     source_type: SourceType
     source_snippet: str  # verbatim 20–50 word quote from source (quote anchor)
-    extraction_date: datetime = Field(default_factory=datetime.utcnow)
+    extraction_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     data_date: Optional[date] = None
     confidence_score: float = Field(ge=0.0, le=1.0)
     temporal_weight: float = Field(default=1.0, ge=0.0, le=1.0)

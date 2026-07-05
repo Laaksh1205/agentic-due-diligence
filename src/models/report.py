@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -31,7 +31,7 @@ class Source(BaseModel):
 
 class ReportMetadata(BaseModel):
     run_id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     model_versions: dict[str, str] = {}  # {"fast": "gemini-2.5-flash", ...}
     estimated_cost_usd: float = 0.0
     latency_seconds: float = 0.0

@@ -92,7 +92,14 @@ async def _run(args: argparse.Namespace) -> int:
     try:
         report = final_state.get("report")
         signals = final_state.get("scored_signals") or final_state.get("raw_signals") or []
-        if report is not None and getattr(report, "risk_signals", None):
+        # Export the full report when it carries the signals (or when there is no
+        # better fallback, e.g. a clean company with zero signals — the report
+        # still holds the executive summary). Only fall back to the signals-only
+        # export when a guardrail-degraded run left signals out of the report.
+        report_has_content = report is not None and (
+            report.risk_signals or report.positive_signals or not signals
+        )
+        if report_has_content:
             from src.presentation.json_export import export_report
             path = export_report(report)
         else:
