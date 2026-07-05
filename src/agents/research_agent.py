@@ -29,7 +29,7 @@ from src.models.signals import SourceType
 
 logger = logging.getLogger(__name__)
 
-_EDGAR_UA = f"DueDiligencePlatform/1.0 {__import__('src.config', fromlist=['settings']).settings.contact_email}"
+_EDGAR_UA = f"DueDiligencePlatform/1.0 {settings.contact_email}"
 
 
 # ── State schema (1.5.1) ───────────────────────────────────────────────────────
@@ -109,6 +109,36 @@ def _classify_source_type(url: str, entity: ResolvedEntity) -> SourceType:
     return SourceType.NEWS_ARTICLE
 
 
+# ── Entity-binding guard ──────────────────────────────────────────────────────
+
+_MIN_BINDING_NAME_LEN = 4  # ignore short aliases/tickers ("BA") that match everywhere
+
+
+def _entity_binding_names(entity: ResolvedEntity) -> list[str]:
+    """Casefolded canonical name + aliases usable for a document↔entity check."""
+    names = [entity.canonical_name, *entity.aliases]
+    return [n.strip().casefold() for n in names if len(n.strip()) >= _MIN_BINDING_NAME_LEN]
+
+
+def _mentions_entity(text: str, entity: ResolvedEntity) -> bool:
+    """True if *text* plausibly refers to *entity* (name/alias substring match).
+
+    Open-web sources (search, news, the guessed company website) can return
+    pages about a similarly-named company; quote-anchor verification cannot
+    catch that — the quote really IS on the page, the page is just about the
+    wrong subject. This deterministic pre-filter keeps a document only when
+    the entity's name or an alias actually appears in it. Fails open when the
+    entity has no usable name (every alias shorter than 4 chars). ID-keyed
+    sources (registry, Companies House, SEC EDGAR) are already structurally
+    bound to the entity and are not filtered.
+    """
+    names = _entity_binding_names(entity)
+    if not names:
+        return True
+    haystack = (text or "").casefold()
+    return any(n in haystack for n in names)
+
+
 async def _search_web(entity: ResolvedEntity) -> list[RawDocument]:
     """Tavily searches across canonical name + aliases. Classifies results by URL."""
     try:
@@ -150,6 +180,14 @@ async def _search_web(entity: ResolvedEntity) -> list[RawDocument]:
                 seen_urls.add(url)
                 # Prefer raw_content (full page text) over snippet when available
                 content = r.get("raw_content") or r.get("content") or r.get("snippet", "")
+                # Wrong-company guard: a search result that never mentions the
+                # entity is likely about a similarly-named company — skip it.
+                if not _mentions_entity(f"{r.get('title', '')} {content}", entity):
+                    logger.debug(
+                        "web_search: dropping %s — no mention of '%s'",
+                        url, entity.canonical_name,
+                    )
+                    continue
                 docs.append(RawDocument(
                     source_url=url,
                     source_type=_classify_source_type(url, entity),
@@ -197,8 +235,18 @@ async def _fetch_website(entity: ResolvedEntity) -> list[RawDocument]:
     urls = [f"https://www.{base}.com", f"https://{base}.com/about"]
     for url in urls:
         doc = await _fetch_url(url, entity.canonical_name, SourceType.COMPANY_WEBSITE)
-        if doc:
-            return [doc]
+        if doc is None:
+            continue
+        # The URL is a *guess* — a page that never mentions the entity is a
+        # different company's site (or a parked domain), not "the company's
+        # own website". Treat it as a miss.
+        if not _mentions_entity(doc.raw_text, entity):
+            logger.info(
+                "website: %s never mentions '%s' — treating heuristic URL as a miss",
+                url, entity.canonical_name,
+            )
+            continue
+        return [doc]
     return []
 
 
@@ -405,6 +453,12 @@ async def _fetch_news(entity: ResolvedEntity) -> list[RawDocument]:
         ]
         text = "\n\n".join(p for p in parts if p).strip()
         if len(text) < 50:
+            continue
+        # Wrong-company guard (same rationale as _search_web).
+        if not _mentions_entity(text, entity):
+            logger.debug(
+                "news: dropping %s — no mention of '%s'", url, entity.canonical_name,
+            )
             continue
         docs.append(RawDocument(
             source_url=url,

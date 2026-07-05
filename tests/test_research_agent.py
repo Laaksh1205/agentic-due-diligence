@@ -16,10 +16,12 @@ import pytest
 from src.agents.research_agent import (
     ResearchState,
     _fetch_companies_house,
+    _fetch_news,
     _fetch_registry_lookup,
     _fetch_url,
     _fetch_website,
     _html_to_text,
+    _mentions_entity,
     _search_web,
     research_agent_node,
 )
@@ -127,8 +129,8 @@ class TestSearchWeb:
     async def test_deduplicates_urls(self):
         dup_result = {
             "results": [
-                {"url": "https://news.com/same", "content": "content A", "title": "A"},
-                {"url": "https://news.com/same", "content": "content B", "title": "B"},
+                {"url": "https://news.com/same", "content": "Stripe content A", "title": "A"},
+                {"url": "https://news.com/same", "content": "Stripe content B", "title": "B"},
             ]
         }
         with patch("src.agents.research_agent.asyncio.to_thread", new=AsyncMock(return_value=dup_result)):
@@ -151,7 +153,7 @@ class TestSearchWeb:
 
     async def test_caps_at_max_docs_per_source(self, monkeypatch):
         monkeypatch.setattr("src.agents.research_agent.settings.max_docs_per_source", 3)
-        many = {"results": [{"url": f"https://n.com/{i}", "content": "x", "title": f"T{i}"} for i in range(20)]}
+        many = {"results": [{"url": f"https://n.com/{i}", "content": "Stripe news item", "title": f"T{i}"} for i in range(20)]}
         with patch("src.agents.research_agent.asyncio.to_thread", new=AsyncMock(return_value=many)):
             with patch("tavily.TavilyClient"):
                 docs = await _search_web(_US_ENTITY)
@@ -223,6 +225,64 @@ class TestFetchWebsite:
             await _fetch_website(_US_ENTITY)
         # Should have stopped after first success (call_count <= 2 candidate URLs, breaks on first hit)
         assert fetch_mock.call_count == 1
+
+
+# ── Entity-binding guard unit tests ──────────────────────────────────────────
+
+class TestEntityBinding:
+    def test_mentions_entity_via_canonical_or_alias(self):
+        assert _mentions_entity("Regulators fined STRIPE, INC. this week", _US_ENTITY)
+        assert _mentions_entity("stripe raised a new funding round", _US_ENTITY)
+
+    def test_rejects_unrelated_company(self):
+        assert not _mentions_entity("Acme Robotics recalled 12,000 units", _US_ENTITY)
+
+    def test_short_ticker_alias_does_not_bind(self):
+        entity = ResolvedEntity(canonical_name="Boeing Co", aliases=["Boeing", "BA"])
+        # "BA" must not count as a mention ("basketball" contains "ba").
+        assert not _mentions_entity("basketball season starts today", entity)
+
+    def test_fails_open_when_no_usable_name(self):
+        entity = ResolvedEntity(canonical_name="IBM", aliases=["IBM"])
+        assert _mentions_entity("anything at all", entity)
+
+    async def test_search_web_drops_results_about_other_companies(self):
+        mixed = {
+            "results": [
+                {"url": "https://news.com/1", "content": "Stripe sued for $10M", "title": "Lawsuit"},
+                {"url": "https://news.com/2", "content": "Acme Robotics recalls units", "title": "Recall"},
+            ]
+        }
+        with patch("src.agents.research_agent.asyncio.to_thread", new=AsyncMock(return_value=mixed)), \
+             patch("tavily.TavilyClient"):
+            docs = await _search_web(_US_ENTITY)
+        assert [d.source_url for d in docs] == ["https://news.com/1"]
+
+    async def test_fetch_website_rejects_wrong_site(self):
+        wrong = RawDocument(
+            source_url="https://www.stripe.com",
+            source_type=SourceType.COMPANY_WEBSITE,
+            raw_text="Welcome to a parked domain. This domain may be for sale.",
+            entity_name="STRIPE, INC.",
+        )
+        with patch("src.agents.research_agent._fetch_url", new=AsyncMock(return_value=wrong)):
+            assert await _fetch_website(_US_ENTITY) == []
+
+    async def test_fetch_news_drops_non_matching_article(self, monkeypatch):
+        monkeypatch.setattr("src.agents.research_agent.settings.news_api_key", "test-key")
+        payload = {
+            "articles": [
+                {"url": "https://n.com/1", "title": "Stripe fined",
+                 "description": "Stripe was fined by the regulator over compliance failures today.",
+                 "content": ""},
+                {"url": "https://n.com/2", "title": "Acme wins award",
+                 "description": "Acme Robotics won an industry award for warehouse robotics.",
+                 "content": ""},
+            ]
+        }
+        with patch("src.mcp_servers.news.server.search_news", new=AsyncMock(return_value=payload)):
+            docs = await _fetch_news(_US_ENTITY)
+        assert [d.source_url for d in docs] == ["https://n.com/1"]
 
 
 # ── _fetch_registry_lookup unit tests ────────────────────────────────────────
