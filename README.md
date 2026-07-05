@@ -25,7 +25,7 @@ license: mit
 
 > Autonomous multi-agent system that researches a company across **521M+ global
 > entities**, extracts **quote-verified** risk signals with an LLM, and synthesizes
-> a **citation-grounded** due-diligence report — in **~3–4 minutes for ~1¢**, not
+> a **citation-grounded** due-diligence report — in **~3–4 minutes for 1–2¢**, not
 > weeks of analyst time.
 
 Point it at any company name. A LangGraph supervisor orchestrates eight pipeline
@@ -54,9 +54,15 @@ Diagram source: [`docs/architecture.mmd`](docs/architecture.mmd).
   (NewsAPI.org — lawsuits, investigations, reputational events), alongside
   Tavily web search. New data sources plug in with zero agent-code changes. See
   [`docs/mcp_servers.md`](docs/mcp_servers.md).
-- **Zero unverified claims** — every extracted signal carries a verbatim
+- **Quote-verified claims** — every extracted signal carries a verbatim
   `source_snippet` that is fuzzy-matched back to the source text (`rapidfuzz`);
-  anything below threshold is rejected and logged.
+  below-threshold snippets are rejected and logged, borderline ones are kept
+  with confidence halved.
+- **Wrong-company guard** — open-web documents (search results, news, the
+  heuristically-guessed company website) must actually mention the resolved
+  entity's name or an alias before they enter extraction, so a similarly-named
+  company can't contaminate the report. ID-keyed sources (registry, Companies
+  House, SEC EDGAR) are structurally bound to the entity already.
 - **Source-credibility weighting & severity gate** — quote-anchoring proves a claim
   is *on the page*; this proves the *page is trustworthy*. Every signal is graded
   by source trust (PRIMARY registries/SEC/court · ESTABLISHED reputable outlets ·
@@ -68,15 +74,22 @@ Diagram source: [`docs/architecture.mmd`](docs/architecture.mmd).
 - **Citation-grounded synthesis** — report sentences reference `[Signal-N]` IDs;
   orphan citations are detected and flagged (faithfulness floor).
 - **RAG-grounded severity** — severity is scored against a FAISS-indexed
-  knowledge base (custom rubric + NIST CSF + regulatory references), not vibes.
+  knowledge base (custom rubric with company-size proportionality, NIST CSF,
+  and US **and international** regulatory references — SEC/OFAC/GDPR plus
+  UK FCA/ICO/SFO, EU competition/DSA/DMA, India RBI/SEBI/ED, and global
+  sanctions/debarment lists), not vibes.
 - **Embedding deduplication** — near-duplicate signals (cosine ≥ 0.85,
   `all-MiniLM-L6-v2`) collapse into one primary + corroborating links; corroborated
   signals get a confidence boost.
 - **Human-in-the-loop gate** — pauses on CRITICAL/low-confidence signals (CLI or
   browser); a configurable timeout auto-proceeds as `PENDING_REVIEW` and never
   auto-confirms a CRITICAL finding.
-- **Private-company aware** — a data-sufficiency tier (RICH/ADEQUATE/LIMITED/
-  SPARSE) drives an explicit caveat when public data is thin.
+- **Private-company aware, jurisdiction-honest** — a data-sufficiency tier
+  (RICH/ADEQUATE/LIMITED/SPARSE) drives an explicit caveat when public data is
+  thin. Depth is deliberately jurisdiction-aware: US public filers get the
+  deepest layer (SEC EDGAR + XBRL), UK companies get Companies House
+  officers/filings, and other jurisdictions rely on registry + web/news — with
+  the sufficiency tier disclosing thinner coverage instead of hiding it.
 - **Three interfaces** — Rich CLI, FastAPI + WebSocket backend, and a Next.js 14
   dashboard (radar chart, filterable signals, browser HITL, PDF/JSON export).
 - **Full observability** — every agent span, MCP call, and LLM generation is
@@ -146,7 +159,8 @@ spins up a self-hosted instance on a shared network instead.
 1. **Entity resolution** — registry search → canonical name, jurisdiction,
    aliases, public/private, SEC CIK; cached 7 days.
 2. **Research** — all MCP sources called concurrently (`asyncio.gather`,
-   `return_exceptions=True`); a failed source is recorded, never fatal.
+   `return_exceptions=True`); a failed source is recorded, never fatal. Open-web
+   results that never mention the resolved entity are dropped (wrong-company guard).
 3. **Data-sufficiency check** — classifies coverage into RICH/ADEQUATE/LIMITED/
    SPARSE from doc count × source-type diversity.
 4. **Extraction** — per-document structured LLM extraction into `RiskSignal`
@@ -222,13 +236,18 @@ Full write-up: [`evaluation/system_vs_human.md`](evaluation/system_vs_human.md).
 
 | Item | Value |
 |---|---|
-| Cost per assessment | **~$0.011–0.021** (avg ~$0.015; Gemini 2.5 Flash-Lite, structured output) |
+| Cost per assessment | **~$0.011–0.021 as recorded** (avg ~$0.015; Gemini 2.5 Flash-Lite, structured output)* |
 | LLM-call guardrail | 50 calls/run hard cap (synthesis reserved) |
 | Cost guardrail | $1.00/run hard cap → pipeline degrades to a partial report |
 | Data sources | All free tier: Tavily (1k/mo), Registry Lookup (5k/mo), Companies House (unlimited), SEC EDGAR (free) |
 | Human equivalent | ~30 analyst-minutes/company |
 
-At ~1¢ and ~3 min per company, the platform is ~3 orders of magnitude cheaper
+\* Recorded figures come from the run-time estimator, which at eval time priced
+Flash-Lite at Flash rates; true billed cost is ~⅓ higher (avg ~2¢/run). The
+estimator now carries Flash-Lite's real pricing ($0.10 in / $0.40 out per 1M
+tokens), so future runs report the corrected number.
+
+At 1–2¢ and ~3 min per company, the platform is ~3 orders of magnitude cheaper
 than manual research while preserving an auditable evidence trail.
 
 ---
@@ -239,7 +258,7 @@ than manual research while preserving an auditable evidence trail.
 |---|---|---|
 | Orchestration | **LangGraph** | Explicit, inspectable state-machine DAG with built-in interrupts for HITL — not an opaque agent loop. |
 | Data sources | **MCP** (custom servers) | Tool/data access is decoupled from agents; a new source is a new server, zero agent changes. |
-| LLM | **Gemini 2.5 Flash-Lite** | Native structured (Pydantic) output, generous free tier, low cost/latency. The provider supports a fast/smart tier split; the evaluated config uses Flash-Lite for both. |
+| LLM | **Gemini 2.5 Flash-Lite** | Native structured (Pydantic) output, generous free tier, low cost/latency. Both tiers default to Flash-Lite (the evaluated config); the fast/smart split is wired, so promoting judgment calls to Pro is a one-line env change. |
 | Verification | **rapidfuzz** | Deterministic quote-anchor matching → no hallucinated claims survive. |
 | Dedup / embeddings | **sentence-transformers** (`all-MiniLM-L6-v2`) | Local, free, fast semantic similarity for dedup + eval matching. |
 | Severity grounding | **FAISS** RAG | Severity decisions grounded in an indexed rubric/NIST/regulatory KB. |

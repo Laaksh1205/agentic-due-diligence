@@ -12,7 +12,7 @@ const FEATURES = [
   {
     icon: ShieldAlert,
     title: "Citation-verified signals",
-    body: "Every risk is anchored to a verbatim source quote. No unverified claims reach the report.",
+    body: "Every risk is anchored to a verbatim source quote and fuzzy-verified against the source. Unverifiable quotes are rejected; lone low-trust findings are capped and flagged for review.",
   },
   {
     icon: Workflow,

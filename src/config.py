@@ -14,9 +14,15 @@ class Settings(BaseSettings):
     )
 
     # ── LLM ──────────────────────────────────────────────────────────────────
+    # Both tiers default to Flash-Lite — the evaluated, ~1–2¢/run configuration.
+    # The fast/smart split is still wired (use_fast=False routes to the smart
+    # tier), so promoting judgment calls to a stronger model is a one-line env
+    # change (GEMINI_SMART_MODEL=gemini-2.5-pro). Defaulting to Flash/Pro was a
+    # cost trap: any environment missing the .env override silently ran ~5×
+    # more expensive.
     google_api_key: str
-    gemini_fast_model: str = "gemini-2.5-flash"
-    gemini_smart_model: str = "gemini-2.5-pro"
+    gemini_fast_model: str = "gemini-2.5-flash-lite"
+    gemini_smart_model: str = "gemini-2.5-flash-lite"
 
     # ── External APIs ─────────────────────────────────────────────────────────
     tavily_api_key: str
