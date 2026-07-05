@@ -2,7 +2,7 @@
 Risk knowledge base — FAISS index + RAG retrieval (Tasks 2.6.4, 2.6.5).
 
 Builds a FAISS index over the markdown reference docs in ``knowledge_base/``
-(severity rubric, NIST CSF summary, regulatory reference), chunked to ~200 words
+(severity rubric, NIST CSF summary, US + international regulatory references), chunked to ~200 words
 and embedded with ``all-MiniLM-L6-v2``. ``retrieve_severity_context`` queries the
 index with a signal and returns the top-k most relevant chunks so the Risk
 Analysis Agent (Task 2.7) can ground its severity judgments.
@@ -28,7 +28,12 @@ logger = logging.getLogger(__name__)
 # knowledge_base/ sits at the project root (two levels up from this file: src/analysis/).
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 KB_DIR = _PROJECT_ROOT / "knowledge_base"
-KB_FILES = ("severity_rubric.md", "nist_csf_summary.md", "regulatory_reference.md")
+KB_FILES = (
+    "severity_rubric.md",
+    "nist_csf_summary.md",
+    "regulatory_reference.md",
+    "regulatory_reference_intl.md",
+)
 INDEX_PATH = KB_DIR / "severity.index"
 CHUNKS_PATH = KB_DIR / "severity_chunks.json"
 

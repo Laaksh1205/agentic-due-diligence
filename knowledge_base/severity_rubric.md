@@ -30,6 +30,18 @@
 - A *remediated* historical event is graded lower than an *active* one.
 - POSITIVE signals (certifications, awards, strong liquidity) are graded INFO or
   LOW unless they are unusually material.
+- **Company-size proportionality.** The absolute dollar figures in this rubric
+  (e.g., "fine >$1M") assume a large enterprise. When the company's scale is
+  known or inferable, grade the *relative* impact: a penalty around or above
+  1% of annual revenue behaves like the rubric's "large" tier even if the
+  absolute number is small, and a fine well under 0.1% of revenue is
+  procedural even if the headline number sounds large. A $2M fine can be
+  existential for a startup and noise for a mega-cap.
+- **Jurisdiction does not change the severity logic.** An action by a non-US
+  regulator (FCA, ICO, SFO, EU Commission, RBI, SEBI, ED — see the
+  international regulatory reference) is graded on the same ladder as its US
+  analog: restriction/revocation of the ability to operate > large fine >
+  small fine > procedural notice.
 
 ---
 
