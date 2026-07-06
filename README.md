@@ -23,10 +23,13 @@ license: mit
 > Hosted on the Hugging Face free tier (US region) — if it's been idle it sleeps,
 > so give it ~30–60s to wake on first load.
 
-> Autonomous multi-agent system that researches a company across registries
-> covering **521M+ global entities**, extracts **quote-verified** risk signals
-> with an LLM, and synthesizes a **citation-grounded** due-diligence report —
-> in **~1–2 minutes for ~2¢**, not weeks of analyst time.
+> Autonomous multi-agent system that researches any company — **deepest on US
+> public filers** (SEC EDGAR) and **UK companies** (Companies House), with global
+> registry resolution across **309 jurisdictions / 521M+ entities** — extracts
+> **quote-verified** risk signals with an LLM, and synthesizes a
+> **citation-grounded** due-diligence report in **~1–2 minutes**. It flags when
+> public data is too thin to be confident instead of bluffing — not weeks of
+> analyst time.
 
 Point it at any company name. A LangGraph supervisor orchestrates eight pipeline
 stages that resolve the entity, gather evidence from custom MCP data sources
